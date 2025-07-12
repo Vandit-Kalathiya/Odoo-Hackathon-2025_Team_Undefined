@@ -1,5 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+// RichTextEditor.jsx or .tsx
+import React, { useEffect, useRef, useState } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
 import Button from "../../../components/ui/Button";
+import TextAlign from "@tiptap/extension-text-align";
 
 const RichTextEditor = ({
   content,
@@ -12,128 +18,163 @@ const RichTextEditor = ({
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
-  const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const emojis = ["😀", "😂", "😍", "🤔", "👍", "👎", "❤️", "🔥", "💡", "✅", "❌", "⚠️", "📝", "💻", "🚀", "🎉"];
+  const emojis = [
+    "😀",
+    "😂",
+    "😍",
+    "🤔",
+    "👍",
+    "👎",
+    "❤️",
+    "🔥",
+    "💡",
+    "✅",
+    "❌",
+    "⚠️",
+    "📝",
+    "💻",
+    "🚀",
+    "🎉",
+  ];
 
-  useEffect(() => {
-    if (editorRef.current && !editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = content || "";
-    }
-  }, [content]);
-
-  const formatText = (command, value = null) => {
-    editorRef.current?.focus();
-
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    const range = selection.getRangeAt(0);
-
-    if (command === "insertUnorderedList" || command === "insertOrderedList") {
-      const success = document.execCommand(command, false, null);
-
-      if (!success) {
-        const tag = command === "insertUnorderedList" ? "ul" : "ol";
-        const wrapper = document.createElement(tag);
-        const li = document.createElement("li");
-        li.textContent = "List item";
-        wrapper.appendChild(li);
-
-        range.deleteContents();
-        range.insertNode(wrapper);
-
-        const newRange = document.createRange();
-        newRange.setStart(li.firstChild, li.firstChild.length);
-        newRange.collapse(true);
-
-        selection.removeAllRanges();
-        selection.addRange(newRange);
-      }
-    } else {
-      document.execCommand(command, false, value);
-    }
-
-    onChange(editorRef.current.innerHTML);
-  };
-
-  const insertHTMLAtCursor = (html) => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    range.deleteContents();
-
-    const fragment = range.createContextualFragment(html);
-    range.insertNode(fragment);
-
-    range.collapse(false);
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    editorRef.current?.focus();
-    onChange(editorRef.current.innerHTML);
-  };
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+      }),
+      Image,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: "min-h-[300px] p-4 focus:outline-none",
+        placeholder,
+      },
+    },
+  });
 
   const insertEmoji = (emoji) => {
-    insertHTMLAtCursor(emoji);
+    editor?.chain().focus().insertContent(emoji).run();
     setShowEmojiPicker(false);
   };
 
   const insertLink = () => {
     if (!linkUrl || !linkText) return;
-
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    range.deleteContents();
-
-    const anchor = document.createElement("a");
-    anchor.href = linkUrl;
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    anchor.textContent = linkText;
-
-    range.insertNode(anchor);
-    range.collapse(false);
-
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    editorRef.current?.focus();
-    onChange(editorRef.current.innerHTML);
-
+    editor
+      ?.chain()
+      .focus()
+      .extendMarkRange("link")
+      .insertContentAt(editor.state.selection, [
+        {
+          type: "text",
+          text: linkText,
+          marks: [{ type: "link", attrs: { href: linkUrl, target: "_blank" } }],
+        },
+      ])
+      .run();
     setShowLinkDialog(false);
     setLinkUrl("");
     setLinkText("");
   };
 
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imgHtml = `<img src="${e.target.result}" alt="Uploaded image" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
-        insertHTMLAtCursor(imgHtml);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      editor?.chain().focus().setImage({ src: base64 }).run();
+    };
+    reader.readAsDataURL(file);
   };
 
-  const getPreviewContent = () => ({
-    __html: content || '<p class="text-muted-foreground">Nothing to preview yet...</p>',
-  });
-
   const toolbarButtons = [
-    { icon: "Bold", command: "bold", tooltip: "Bold (Ctrl+B)" },
-    { icon: "Italic", command: "italic", tooltip: "Italic (Ctrl+I)" },
-    { icon: "Strikethrough", command: "strikethrough", tooltip: "Strikethrough" },
-    { icon: "List", command: "insertUnorderedList", tooltip: "Bullet List" },
-    { icon: "ListOrdered", command: "insertOrderedList", tooltip: "Numbered List" },
-    { icon: "AlignLeft", command: "justifyLeft", tooltip: "Align Left" },
-    { icon: "AlignCenter", command: "justifyCenter", tooltip: "Align Center" },
-    { icon: "AlignRight", command: "justifyRight", tooltip: "Align Right" },
+    {
+      icon: "Bold",
+      action: () => editor?.chain().focus().toggleBold().run(),
+      tooltip: "Bold",
+    },
+    {
+      icon: "Italic",
+      action: () => editor?.chain().focus().toggleItalic().run(),
+      tooltip: "Italic",
+    },
+    {
+      icon: "Strikethrough",
+      action: () => editor?.chain().focus().toggleStrike().run(),
+      tooltip: "Strikethrough",
+    },
+    {
+      icon: "List",
+      action: () => editor?.chain().focus().toggleBulletList().run(),
+      tooltip: "Bullet List",
+    },
+    {
+      icon: "ListOrdered",
+      action: () => editor?.chain().focus().toggleOrderedList().run(),
+      tooltip: "Numbered List",
+    },
+    {
+      icon: "AlignLeft",
+      action: () => editor?.chain().focus().setTextAlign("left").run(),
+      tooltip: "Align Left",
+    },
+    {
+      icon: "AlignCenter",
+      action: () => editor?.chain().focus().setTextAlign("center").run(),
+      tooltip: "Align Center",
+    },
+    {
+      icon: "AlignRight",
+      action: () => editor?.chain().focus().setTextAlign("right").run(),
+      tooltip: "Align Right",
+    },
+    {
+      // icon: "H1",
+      action: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
+      tooltip: "Heading 1",
+      label: "H1",
+    },
+    {
+      // icon: "H2",
+      action: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
+      tooltip: "Heading 2",
+      label: "H2",
+    },
+    {
+      action: () => editor?.chain().focus().toggleHeading({ level: 3 }).run(),
+      tooltip: "Heading 3",
+      label: "H3",
+    },
+    {
+      action: () => editor?.chain().focus().toggleHeading({ level: 4 }).run(),
+      tooltip: "Heading 4",
+      label: "H4",
+    },
+    {
+      action: () => editor?.chain().focus().toggleHeading({ level: 5 }).run(),
+      tooltip: "Heading 5",
+      label: "H5",
+    },
+    {
+      action: () => editor?.chain().focus().toggleHeading({ level: 6 }).run(),
+      tooltip: "Heading 6",
+      label: "H6",
+    },
+    {
+      action: () => editor?.chain().focus().toggleBlockquote().run(),
+      tooltip: "Blockquote",
+      label: "BQ",
+    },
   ];
 
   return (
@@ -144,7 +185,7 @@ const RichTextEditor = ({
         </label>
         <div className="flex items-center space-x-2">
           <Button
-            variant={isPreviewMode ? "ghost" : "outline"}
+            variant={!isPreviewMode ? "outline" : "ghost"}
             size="sm"
             onClick={() => setIsPreviewMode(false)}
             iconName="Edit"
@@ -166,95 +207,94 @@ const RichTextEditor = ({
 
       {!isPreviewMode && (
         <div className="border rounded-lg overflow-hidden bg-background">
-          <div className="border-b bg-muted/30 p-2">
-            <div className="flex flex-wrap items-center gap-1">
-              {toolbarButtons.map((button) => (
-                <Button
-                  key={button.command}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => formatText(button.command)}
-                  iconName={button.icon}
-                  iconSize={16}
-                  className="h-8 w-8 p-0"
-                  title={button.tooltip}
-                />
-              ))}
+          <div className="border-b bg-muted/30 p-2 flex flex-wrap gap-1 items-center">
+            {toolbarButtons.map((btn, idx) => (
+              <Button
+                key={idx}
+                variant="ghost"
+                size="sm"
+                onClick={btn.action}
+                iconName={btn.icon}
+                iconSize={16}
+                className="h-8 w-8 p-0"
+                title={btn.tooltip}
+              >
+                {" "}
+                {btn.label || (
+                  <span className="sr-only">{btn.tooltip}</span>
+                )}{" "}
+              </Button>
+            ))}
 
-              <div className="w-px h-6 bg-border mx-1" />
+            <div className="w-px h-6 bg-border mx-1" />
 
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  iconName="Smile"
-                  iconSize={16}
-                  className="h-8 w-8 p-0"
-                  title="Insert Emoji"
-                />
-                {showEmojiPicker && (
-                  <div className="absolute top-full left-0 mt-1 bg-popover border rounded-lg shadow-lg p-2 z-10">
-                    <div className="grid grid-cols-8 gap-1 w-64">
-                      {emojis.map((emoji, index) => (
-                        <button
-                          key={index}
-                          onClick={() => insertEmoji(emoji)}
-                          className="p-1 hover:bg-muted rounded text-lg"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                iconName="Smile"
+                iconSize={16}
+                className="h-8 w-8 p-0"
+                title="Insert Emoji"
+              />
+              {showEmojiPicker && (
+                <div className="absolute top-full left-0 mt-1 bg-popover border rounded-lg shadow-lg p-2 z-10">
+                  <div className="grid grid-cols-8 gap-1 w-64">
+                    {emojis.map((emoji, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => insertEmoji(emoji)}
+                        className="p-1 hover:bg-muted rounded text-lg"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowLinkDialog(true)}
-                iconName="Link"
-                iconSize={16}
-                className="h-8 w-8 p-0"
-                title="Insert Link"
-              />
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                iconName="Image"
-                iconSize={16}
-                className="h-8 w-8 p-0"
-                title="Upload Image"
-              />
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
+                </div>
+              )}
             </div>
-          </div>
 
-          <div
-            ref={editorRef}
-            contentEditable
-            className="min-h-[300px] p-4 focus:outline-none"
-            style={{ minHeight: "300px" }}
-            onInput={() => onChange(editorRef.current?.innerHTML || "")}
-            data-placeholder={placeholder}
-          />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLinkDialog(true)}
+              iconName="Link"
+              iconSize={16}
+              className="h-8 w-8 p-0"
+              title="Insert Link"
+            />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              iconName="Image"
+              iconSize={16}
+              className="h-8 w-8 p-0"
+              title="Upload Image"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+          </div>
+          <EditorContent editor={editor} />
         </div>
       )}
 
       {isPreviewMode && (
-        <div className="border rounded-lg p-4 min-h-[300px] bg-background">
-          <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={getPreviewContent()} />
-        </div>
+        <div
+          className="border rounded-lg p-4 min-h-[300px] bg-background prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{
+            __html:
+              editor?.getHTML() ||
+              "<p class='text-muted-foreground'>Nothing to preview yet...</p>",
+          }}
+        />
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -275,8 +315,8 @@ const RichTextEditor = ({
                   type="text"
                   value={linkText}
                   onChange={(e) => setLinkText(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border rounded-md"
                   placeholder="Enter link text"
-                  className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
@@ -285,18 +325,14 @@ const RichTextEditor = ({
                   type="url"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border rounded-md"
                   placeholder="https://example.com"
-                  className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="ghost"
-                  onClick={() => {
-                    setShowLinkDialog(false);
-                    setLinkUrl("");
-                    setLinkText("");
-                  }}
+                  onClick={() => setShowLinkDialog(false)}
                 >
                   Cancel
                 </Button>
