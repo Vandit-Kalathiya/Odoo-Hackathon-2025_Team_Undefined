@@ -8,21 +8,37 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
   const { getUserNotifications, markAsRead } = useNotifications();
   const { user, userProfile } = useAuth();
 
   const fetchNotifications = async () => {
-    const userNotifications = await getUserNotifications(userProfile.id);
-    console.log("Fetched notifications:", userNotifications);
-    setNotifications(userNotifications.content.filter((n) => !n.isRead));
-    setUnreadCount(userNotifications.content.filter((n) => !n.isRead).length);
+    if (!userProfile?.id) return;
+
+    try {
+      setLoading(true);
+      const userNotifications = await getUserNotifications(userProfile.id);
+      console.log("Fetched notifications:", userNotifications);
+
+      // Handle both direct array and paginated response
+      const notificationsList =
+        userNotifications?.content || userNotifications || [];
+      const unreadNotifications = notificationsList.filter((n) => !n.isRead);
+
+      setNotifications(notificationsList);
+      setUnreadCount(unreadNotifications.length);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Mock notifications data
+  // Fetch notifications on component mount and when user changes
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [userProfile?.id]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -37,37 +53,70 @@ const NotificationBell = () => {
   }, []);
 
   const handleNotificationClick = async (notificationId) => {
-    const res = await markAsRead(notificationId, userProfile.id);
-    console.log("Marked notification as read:", res);
+    if (!userProfile?.id) return;
 
-    setNotifications((notification) =>
-      notification.id === notificationId
-        ? { ...notification, isRead: true }
-        : notification
-    );
+    try {
+      const res = await markAsRead(notificationId, userProfile.id);
+      console.log("Marked notification as read:", res);
 
-    console.log(notifications);
+      // Update the specific notification in the state
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) =>
+          notification.id === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
 
-    if (notifications.find((n) => n.id === notificationId && !n.isRead)) {
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      // Update unread count only if the notification was actually unread
+      const clickedNotification = notifications.find(
+        (n) => n.id === notificationId
+      );
+      if (clickedNotification && !clickedNotification.isRead) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
     }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadCount(0);
+  const markAllAsRead = async () => {
+    if (!userProfile?.id) return;
+
+    try {
+      // Mark all notifications as read in the backend
+      const unreadNotifications = notifications.filter((n) => !n.isRead);
+      const markPromises = unreadNotifications.map((n) =>
+        markAsRead(n.id, userProfile.id)
+      );
+
+      await Promise.all(markPromises);
+
+      // Update local state
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
   };
 
   const getNotificationIcon = (type) => {
     switch (type) {
       case "answer":
+      case "ANSWER":
         return "MessageSquare";
       case "vote":
+      case "VOTE":
         return "ThumbsUp";
       case "comment":
+      case "COMMENT":
         return "MessageCircle";
       case "badge":
+      case "BADGE":
         return "Award";
+      case "question":
+      case "QUESTION":
+        return "HelpCircle";
       default:
         return "Bell";
     }
@@ -76,17 +125,52 @@ const NotificationBell = () => {
   const getNotificationColor = (type) => {
     switch (type) {
       case "answer":
+      case "ANSWER":
         return "text-primary";
       case "vote":
+      case "VOTE":
         return "text-success";
       case "comment":
+      case "COMMENT":
         return "text-secondary";
       case "badge":
+      case "BADGE":
         return "text-warning";
+      case "question":
+      case "QUESTION":
+        return "text-info";
       default:
         return "text-muted-foreground";
     }
   };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "";
+
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+      if (diffInMinutes < 1) return "Just now";
+      if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      if (diffInHours < 24) return `${diffInHours}h ago`;
+
+      const diffInDays = Math.floor(diffInHours / 24);
+      if (diffInDays < 7) return `${diffInDays}d ago`;
+
+      return date.toLocaleDateString();
+    } catch (error) {
+      return timestamp;
+    }
+  };
+
+  // Don't render if user is not logged in
+  if (!userProfile && !user) {
+    return null;
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -95,6 +179,7 @@ const NotificationBell = () => {
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
         className="relative h-9 w-9"
+        title="Notifications"
       >
         <Icon name="Bell" size={18} />
         {unreadCount > 0 && (
@@ -117,6 +202,7 @@ const NotificationBell = () => {
                   size="xs"
                   onClick={markAllAsRead}
                   className="text-xs"
+                  disabled={loading}
                 >
                   Mark all read
                 </Button>
@@ -125,7 +211,12 @@ const NotificationBell = () => {
           </div>
 
           <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {loading ? (
+              <div className="p-6 text-center text-muted-foreground">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p>Loading notifications...</p>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground">
                 <Icon
                   name="Bell"
@@ -135,7 +226,7 @@ const NotificationBell = () => {
                 <p>No notifications yet</p>
               </div>
             ) : (
-              notifications.content.map((notification) => (
+              notifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={`p-4 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors duration-150 ${
@@ -157,17 +248,21 @@ const NotificationBell = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
                         <p className="text-sm font-medium text-popover-foreground truncate">
-                          {notification.title}
+                          {notification.title || notification.message}
                         </p>
                         {!notification.isRead && (
                           <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {notification.message}
-                      </p>
+                      {notification.title && notification.message && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {notification.message}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-2">
-                        {notification.timestamp}
+                        {formatTimestamp(
+                          notification.timestamp || notification.createdAt
+                        )}
                       </p>
                     </div>
                   </div>

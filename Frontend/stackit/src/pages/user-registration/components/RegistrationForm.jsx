@@ -95,7 +95,7 @@ const RegistrationForm = ({
       console.log("Registration result:", result);
 
       if (result?.success) {
-        window.location.href = "/";
+        window.location.href = "/questions-dashboard";
       }
     } catch (error) {
       console.log("Registration error:", error);
