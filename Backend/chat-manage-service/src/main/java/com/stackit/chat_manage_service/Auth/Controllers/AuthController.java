@@ -86,6 +86,13 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse(true, "User profile retrieved", profile));
     }
 
+    @GetMapping("/getuser/{id}")
+    public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
+
+        return ResponseEntity.ok(authService.getCurrentUserDetails());
+
+    }
+
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> adminOnly() {

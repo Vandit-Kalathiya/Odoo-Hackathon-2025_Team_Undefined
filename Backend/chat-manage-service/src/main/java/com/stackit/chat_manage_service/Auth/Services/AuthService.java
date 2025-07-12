@@ -5,6 +5,7 @@ import com.stackit.chat_manage_service.Auth.Entities.User;
 import com.stackit.chat_manage_service.Auth.Payload.auth.AuthResponse;
 import com.stackit.chat_manage_service.Auth.Payload.auth.LoginRequest;
 import com.stackit.chat_manage_service.Auth.Payload.auth.SignUpRequest;
+import com.stackit.chat_manage_service.Auth.Payload.auth.UserResponseDTO;
 import com.stackit.chat_manage_service.Auth.Repository.UserRepository;
 import com.stackit.chat_manage_service.Auth.Utills.JwtUtils;
 import com.stackit.chat_manage_service.Entity.enums.UserRole;
@@ -53,7 +54,7 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         // Generate JWT token
-        String token = jwtUtils.generateToken(savedUser.getUsername());
+        String token = jwtUtils.generateToken(savedUser.getEmail());
 
         return new AuthResponse(
                 token,
@@ -90,5 +91,31 @@ public class AuthService {
                 user.getRole().name(),
                 user.getId()
         );
+    }
+
+    public UserResponseDTO getCurrentUserDetails() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println(email);
+        User user = userRepository.findByEmailOrUsername(email,email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return mapToDto(user);
+    }
+
+    private UserResponseDTO mapToDto(User user) {
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setDisplayName(user.getDisplayName());
+        dto.setRole(user.getRole());
+        dto.setIsActive(user.getIsActive());
+        dto.setIsBanned(user.getIsBanned());
+        dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setBio(user.getBio());
+        dto.setReputationScore(user.getReputationScore());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setUpdatedAt(user.getUpdatedAt());
+        return dto;
     }
 }
