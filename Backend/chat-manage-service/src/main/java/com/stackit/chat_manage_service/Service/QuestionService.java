@@ -76,7 +76,6 @@ public class QuestionService {
         return response;
     }
 
-    @Transactional(readOnly = true)
     public QuestionResponse getQuestionById(Long id, Long currentUserId) {
         Question question = questionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
@@ -89,13 +88,11 @@ public class QuestionService {
         return mapToQuestionResponse(question);
     }
 
-    @Transactional(readOnly = true)
     public Page<QuestionResponse> getAllQuestions(Pageable pageable) {
         return questionRepository.findByIsActiveTrueOrderByCreatedAtDesc(pageable)
                 .map(this::mapToQuestionResponse);
     }
 
-    @Transactional(readOnly = true)
     public Page<QuestionResponse> searchQuestions(String keyword, Pageable pageable) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return getAllQuestions(pageable);
@@ -105,7 +102,6 @@ public class QuestionService {
                 .map(this::mapToQuestionResponse);
     }
 
-    @Transactional(readOnly = true)
     public Page<QuestionResponse> getQuestionsByTags(List<String> tagNames, Pageable pageable) {
         List<Tag> tags = tagNames.stream()
                 .map(name -> tagRepository.findByName(name)
@@ -116,7 +112,6 @@ public class QuestionService {
                 .map(this::mapToQuestionResponse);
     }
 
-    @Transactional(readOnly = true)
     public Page<QuestionResponse> getUnansweredQuestions(Pageable pageable) {
         return questionRepository.findUnansweredQuestions(pageable)
                 .map(this::mapToQuestionResponse);
