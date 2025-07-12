@@ -34,7 +34,7 @@ const AnswerCard = ({ answer, onQuestionClick }) => {
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-1 text-muted-foreground">
             <Icon name="ThumbsUp" size={14} />
-            <span className="text-sm">{answer.votes}</span>
+            <span className="text-sm">{answer?.votes}</span>
           </div>
         </div>
       </div>
