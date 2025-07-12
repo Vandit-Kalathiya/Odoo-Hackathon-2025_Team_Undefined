@@ -1,12 +1,12 @@
 package com.stackit.chat_manage_service.Service;
 
+import com.stackit.chat_manage_service.Auth.Entities.User;
+import com.stackit.chat_manage_service.Auth.Repository.UserRepository;
 import com.stackit.chat_manage_service.Entity.Answer;
 import com.stackit.chat_manage_service.Entity.Question;
-import com.stackit.chat_manage_service.Entity.User;
 import com.stackit.chat_manage_service.Payload.Response.UserSummaryResponse;
 import com.stackit.chat_manage_service.Repository.AnswerRepository;
 import com.stackit.chat_manage_service.Repository.QuestionRepository;
-import com.stackit.chat_manage_service.Repository.UserRepository;
 import com.stackit.chat_manage_service.Repository.VoteRepository;
 import com.stackit.chat_manage_service.Payload.Request.CreateAnswerRequest;
 import com.stackit.chat_manage_service.Payload.Response.AnswerResponse;

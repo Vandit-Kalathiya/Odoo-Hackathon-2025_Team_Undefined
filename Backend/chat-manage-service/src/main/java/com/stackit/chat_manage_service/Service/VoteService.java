@@ -1,12 +1,12 @@
 package com.stackit.chat_manage_service.Service;
 
 import com.stackit.chat_manage_service.Entity.Answer;
-import com.stackit.chat_manage_service.Entity.User;
+import com.stackit.chat_manage_service.Auth.Entities.User;
 import com.stackit.chat_manage_service.Entity.Vote;
 import com.stackit.chat_manage_service.Entity.enums.VoteType;
 import com.stackit.chat_manage_service.Payload.Request.VoteRequest;
 import com.stackit.chat_manage_service.Repository.AnswerRepository;
-import com.stackit.chat_manage_service.Repository.UserRepository;
+import com.stackit.chat_manage_service.Auth.Repository.UserRepository;
 import com.stackit.chat_manage_service.Repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
