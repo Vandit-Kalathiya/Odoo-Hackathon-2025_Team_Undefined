@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from "react";
 import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
+import SockJS from 'sockjs-client/dist/sockjs';
 import { useApiConfig } from "./ApiConfig";
 
 const WebSocketContext = createContext(null);

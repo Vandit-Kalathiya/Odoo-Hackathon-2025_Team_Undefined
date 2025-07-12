@@ -6,6 +6,7 @@ import Button from './Button';
 const UserMenu = ({ user, isMobile = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  console.log(user)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -76,7 +77,6 @@ const UserMenu = ({ user, isMobile = false }) => {
 
   const getUserInitials = (name) => {
     return name
-      .split(' ')
       .map(word => word.charAt(0))
       .join('')
       .toUpperCase()
@@ -91,7 +91,7 @@ const UserMenu = ({ user, isMobile = false }) => {
             {user.avatar ? (
               <Image
                 src={user.avatar}
-                alt={user.name}
+                alt={user.username}
                 className="w-10 h-10 rounded-full object-cover"
               />
             ) : (
@@ -165,12 +165,12 @@ const UserMenu = ({ user, isMobile = false }) => {
             {user.avatar ? (
               <Image
                 src={user.avatar}
-                alt={user.name}
+                alt={user.username}
                 className="w-7 h-7 rounded-full object-cover"
               />
             ) : (
               <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
-                {getUserInitials(user.name)}
+                {getUserInitials(user.username)}
               </div>
             )}
           </div>
@@ -186,12 +186,12 @@ const UserMenu = ({ user, isMobile = false }) => {
                 {user.avatar ? (
                   <Image
                     src={user.avatar}
-                    alt={user.name}
+                    alt={user.username}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-                    {getUserInitials(user.name)}
+                    {getUserInitials(user.username)}
                   </div>
                 )}
               </div>

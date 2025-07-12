@@ -109,7 +109,16 @@ const signIn = async (email, password) => {
 
     // Save token and user info to localStorage
     localStorage.setItem("token", result.data.token);
-    localStorage.setItem("user", JSON.stringify(result.data));
+
+    setUser(result.data)
+    const user = result.data.username || result.data.email
+
+    console.log(user)
+
+    const profileResult = await authService.getUserProfile(user.id);
+    if (profileResult?.success) {
+      setUserProfile(profileResult.data);
+    }
 
     return { success: true, data: result.data };
   } catch (error) {
@@ -146,9 +155,22 @@ const signIn = async (email, password) => {
       return { success: false, error: result?.message };
     }
 
+    console.log(result.data)
+
     // Save token and user info to localStorage
     localStorage.setItem("token", result.data.token);
-    localStorage.setItem("user", JSON.stringify(result.data));
+
+    setUser(result.data);
+    const user = result.data.user || result.data;
+
+    // Load and set profile
+    const profileResult = await authService.getUserProfile(user.id);
+    if (profileResult?.success) {
+      setUserProfile(profileResult.data);
+    }
+
+    console.log(user)
+
 
     return { success: true, data: result.data };
   } catch (error) {
