@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import questionService from '../../utils/questionService';
 import Icon from '../../components/AppIcon';
@@ -14,7 +14,7 @@ import DraftManager from './components/DraftManager';
 
 const AskQuestion = () => {
   const location = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { getCurrentUser } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
@@ -22,12 +22,18 @@ const AskQuestion = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
+
+  const navigate = useNavigate();
+  const [user, setUser] = useState('');
+  const token = localStorage.getItem('token')
+  
   // Check if user is authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      window.location.href = '/user-registration';
-    }
-  }, [user, authLoading]);
+  useEffect( async () => {
+    const newUser = await getCurrentUser(token);
+    setUser(newUser)
+    console.log(user)
+  }, [location]);
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -85,7 +91,7 @@ const AskQuestion = () => {
         localStorage.removeItem('ask_question_draft');
         
         // Redirect to the new question page
-        window.location.href = `/question-detail-answers?id=${result.data.id}`;
+        navigate(`/question-detail-answers?id=${result.data.id}`);
       } else {
         setErrors({ submit: result?.error || 'Failed to post question. Please try again.' });
       }
@@ -101,7 +107,7 @@ const AskQuestion = () => {
     if (title || content || selectedTags.length > 0) {
       setShowCancelDialog(true);
     } else {
-      window.location.href = '/questions-dashboard';
+      navigate('/questions-dashboard');
     }
   };
 
@@ -115,7 +121,7 @@ const AskQuestion = () => {
       };
       localStorage.setItem('ask_question_draft', JSON.stringify(draft));
     }
-    window.location.href = '/questions-dashboard';
+    navigate('/questions-dashboard');
   };
 
   const handleLoadDraft = (draft) => {
@@ -128,21 +134,22 @@ const AskQuestion = () => {
   const hasContent = title || content || selectedTags.length > 0;
 
   // Show loading state during auth check
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-6 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (authLoading) {
+  //   return (
+  //     <div className="min-h-screen bg-background">
+  //       <Header />
+  //       <div className="container mx-auto px-4 py-6 flex items-center justify-center">
+  //         <div className="text-center space-y-4">
+  //           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+  //           <p className="text-muted-foreground">Loading...</p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Redirect message for unauthenticated users
+  console.log(user)
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -151,7 +158,7 @@ const AskQuestion = () => {
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold text-foreground">Sign In Required</h2>
             <p className="text-muted-foreground">You need to sign in to ask a question.</p>
-            <Button onClick={() => window.location.href = '/user-registration'}>
+            <Button onClick={() => navigate('/user-registration')}>
               Sign In
             </Button>
           </div>
@@ -170,7 +177,7 @@ const AskQuestion = () => {
           <div className="mb-8">
             <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-2">
               <button 
-                onClick={() => window.location.href = '/questions-dashboard'}
+                onClick={() => navigate('/questions-dashboard')}
                 className="hover:text-foreground transition-colors"
               >
                 Questions

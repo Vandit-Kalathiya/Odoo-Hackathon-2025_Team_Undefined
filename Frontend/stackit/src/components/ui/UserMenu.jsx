@@ -76,7 +76,7 @@ const UserMenu = ({ user, isMobile = false }) => {
   };
 
   const getUserInitials = (name) => {
-    return name
+    return name.split('')
       .map(word => word.charAt(0))
       .join('')
       .toUpperCase()
@@ -91,7 +91,7 @@ const UserMenu = ({ user, isMobile = false }) => {
             {user.avatar ? (
               <Image
                 src={user.avatar}
-                alt={user.username}
+                alt={user.name}
                 className="w-10 h-10 rounded-full object-cover"
               />
             ) : (
@@ -101,7 +101,7 @@ const UserMenu = ({ user, isMobile = false }) => {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+            <p className="text-sm font-medium text-foreground truncate">{user.username}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
         </div>
@@ -165,12 +165,12 @@ const UserMenu = ({ user, isMobile = false }) => {
             {user.avatar ? (
               <Image
                 src={user.avatar}
-                alt={user.username}
+                alt={user.name}
                 className="w-7 h-7 rounded-full object-cover"
               />
             ) : (
               <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
-                {getUserInitials(user.username)}
+                {getUserInitials(user.name)}
               </div>
             )}
           </div>
@@ -186,19 +186,19 @@ const UserMenu = ({ user, isMobile = false }) => {
                 {user.avatar ? (
                   <Image
                     src={user.avatar}
-                    alt={user.username}
+                    alt={user.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-                    {getUserInitials(user.username)}
+                    {getUserInitials(user.name)}
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-popover-foreground truncate">{user.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                {user.role === 'admin' && (
+                {user.role === 'ADMIN' && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning/10 text-warning mt-1">
                     Admin
                   </span>

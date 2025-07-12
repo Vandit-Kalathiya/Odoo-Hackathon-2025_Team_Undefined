@@ -12,7 +12,7 @@ import Button from '../../components/ui/Button';
 
 const QuestionsDashboard = () => {
   const location = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { getCurrentUser, loading: authLoading } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,6 +27,16 @@ const QuestionsDashboard = () => {
     activeUsers: 0,
     todayQuestions: 0
   });
+
+    const [user, setUser] = useState('');
+    const token = localStorage.getItem('token')
+    
+    // Check if user is authenticated
+    useEffect( async () => {
+      const newUser = await getCurrentUser(token);
+      setUser(newUser)
+      console.log(user)
+    }, []);
 
   // Parse URL parameters
   useEffect(() => {

@@ -50,10 +50,12 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
     try {
       const result = await signIn(formData.email, formData.password);
       
-      if (result?.success) {
+      if (result) {
         // Redirect to dashboard on successful login
-        navigate('/questions-dashboard');
+        navigate('/');
+        setIsLoading(false);
       }
+      console.log(result)
     } catch (error) {
       console.log('Login error:', error);
     } finally {

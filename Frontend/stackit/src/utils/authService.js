@@ -86,9 +86,8 @@ const authService = {
 
   // Get current session
   getSession: async () => {
-    const token = localStorage.getItem("token");
-    const user = localStorage.getItem("user");
-    if (token && user) {
+    const token = localStorage.getItem("token")
+    if (token) {
       return {
         success: true,
         data: {

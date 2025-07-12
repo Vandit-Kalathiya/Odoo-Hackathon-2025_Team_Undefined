@@ -10,6 +10,7 @@ import EditProfileModal from './components/EditProfileModal';
 import ProfileSidebar from './components/ProfileSidebar';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
+import { useAuth } from 'contexts/AuthContext';
 
 const UserProfile = () => {
   const [activeTab, setActiveTab] = useState('questions');
@@ -20,6 +21,17 @@ const UserProfile = () => {
   const [activities, setActivities] = useState([]);
   const [badges, setBadges] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { getCurrentUser } = useAuth();
+
+
+  const token = localStorage.getItem('token')
+    
+    useEffect( async () => {
+      const newUser = await getCurrentUser(token);
+      setUser(newUser)
+      console.log(user)
+    }, []);
+  
 
   // Mock user data
   useEffect(() => {
@@ -197,7 +209,7 @@ const UserProfile = () => {
 
     // Simulate API loading
     setTimeout(() => {
-      setUser(mockUser);
+      // setUser(mockUser);
       setQuestions(mockQuestions);
       setAnswers(mockAnswers);
       setActivities(mockActivities);
@@ -205,6 +217,8 @@ const UserProfile = () => {
       setIsLoading(false);
     }, 1000);
   }, []);
+
+
 
   const handleEditProfile = () => {
     setIsEditModalOpen(true);

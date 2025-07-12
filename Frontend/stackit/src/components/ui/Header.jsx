@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import Icon from '../AppIcon';
 import Button from './Button';
@@ -44,10 +44,12 @@ const Header = () => {
     }
   ];
 
+  const navigate = useNavigate();
+
   const isActive = (path) => location.pathname === path;
 
   const handleNavigation = (path) => {
-    window.location.href = path;
+    navigate(path);
     setIsMobileMenuOpen(false);
   };
 
