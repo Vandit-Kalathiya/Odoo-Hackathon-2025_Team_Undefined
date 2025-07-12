@@ -77,8 +77,8 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
     setIsLoading(true);
     
     try {
-      const userData = {
-        full_name: formData.fullName.trim(),
+            const userData = {
+        fullName: formData.fullName.trim(), // ✅ CORRECT key (camelCase, not snake_case)
         username: formData.username.trim(),
       };
 
