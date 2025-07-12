@@ -14,6 +14,8 @@ import {
   transformQuestionForDisplay,
   transformCurrentUser,
 } from "../../utils/userHelpers";
+import { useAnswers } from "contexts/AnswerContext";
+import { useAuth } from "contexts/AuthContext";
 
 const QuestionDetailAnswers = () => {
   const location = useLocation();
@@ -26,22 +28,23 @@ const QuestionDetailAnswers = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const { getAllQuestions } = useQuestions();
   const questionId = new URLSearchParams(location.search).get("id");
+  const { createAnswer, getAnswersByQuestion } = useAnswers();
+  const { user, userProfile } = useAuth();
+
+  // Load answers for the question
+  useEffect(() => {
+    const fetchAnswers = async () => {
+      const allAnswers = await getAnswersByQuestion(questionId);
+      setAnswers(allAnswers);
+    };
+
+    fetchAnswers();
+  }, [questionId, getAnswersByQuestion]);
 
   // Mock current user - update this to match your user structure
   useEffect(() => {
-    const mockUserData = {
-      id: 1,
-      username: "john_doe",
-      displayName: "John Doe",
-      email: "john@example.com",
-      avatarUrl:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      reputationScore: 1520,
-      role: "USER",
-    };
-
-    setCurrentUser(transformCurrentUser(mockUserData));
-  }, []);
+    setCurrentUser(transformCurrentUser(userProfile));
+  }, [userProfile]);
 
   // Transform your question object to match component expectations
   const transformQuestion = (questionData) => {
@@ -391,6 +394,18 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const ansData = {
+        content,
+        questionId: question.id,
+        userId: currentUser.id
+      };
+
+      console.log("Submitting answer:", ansData);
+
+      const res = await createAnswer(ansData);
+
+      console.log("Answer submitted successfully:", res);
 
       const newAnswer = {
         id: Date.now(),
