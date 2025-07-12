@@ -3,6 +3,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Icon from '../../../components/AppIcon';
+import { useNavigate } from 'react-router-dom';
 
 const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
   const { signIn, loading: authLoading, authError } = useAuth();
@@ -51,7 +52,7 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
       
       if (result?.success) {
         // Redirect to dashboard on successful login
-        window.location.href = '/questions-dashboard';
+        navigate('/questions-dashboard');
       }
     } catch (error) {
       console.log('Login error:', error);
@@ -59,6 +60,8 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
       setIsLoading(false);
     }
   };
+
+  const navigate = useNavigate();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-gray-200 rounded-2xl shadow-xl w-full max-w-md p-8">
