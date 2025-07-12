@@ -14,7 +14,6 @@ import {
   transformQuestionForDisplay,
   transformCurrentUser,
 } from "../../utils/userHelpers";
-import { all } from "axios";
 
 const QuestionDetailAnswers = () => {
   const location = useLocation();
@@ -50,142 +49,144 @@ const QuestionDetailAnswers = () => {
   };
 
   // Load question data
-  useEffect(async () => {
-    try {
-      const allQuestions = await getAllQuestions();
-      console.log(allQuestions);
-      
-      const foundQuestion = allQuestions.content.find(
-        (q) => q.id === parseInt(questionId)
-      );
+  useEffect(() => {
+    const fetchQuestion = async () => {
+      try {
+        const allQuestions = await getAllQuestions();
+        const foundQuestion = allQuestions.content.find(
+          (q) => q.id === parseInt(questionId)
+        );
 
-      if (foundQuestion) {
-        setQuestion(transformQuestion(foundQuestion));
-      } else {
-        // Fallback mock question if not found
-        const mockQuestion = {
-          id: parseInt(questionId) || 1,
-          title: "How to implement WebSocket in Spring Boot?",
-          content: `<p>I'm trying to implement <strong>real-time messaging</strong> in my Spring Boot application. Can someone guide me through the process?</p><ul><li>WebSocket configuration</li><li>Message handling</li><li>Client-side integration</li></ul>`,
-          author: {
-            id: 1,
-            name: "John Doe",
-            username: "john_doe",
-            avatar:
-              "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-            reputation: 100,
-            title: "USER",
-            isOnline: true,
-          },
-          createdAt: new Date().toISOString(),
-          lastActivity: new Date().toISOString(),
-          views: 0,
-          votes: 0,
-          answerCount: 1,
-          followers: 0,
-          tags: ["java", "spring-boot", "websocket", "real-time"],
-          userVote: null,
-          isBookmarked: false,
-          isFollowing: false,
-          acceptedAnswerAt: null,
-          isClosed: false,
-          closeReason: null,
-          hasAcceptedAnswer: false,
-        };
-        setQuestion(mockQuestion);
+        if (foundQuestion) {
+          setQuestion(transformQuestion(foundQuestion));
+        } else {
+          // Fallback mock question if not found
+          const mockQuestion = {
+            id: parseInt(questionId) || 1,
+            title: "How to implement WebSocket in Spring Boot?",
+            content: `<p>I'm trying to implement <strong>real-time messaging</strong> in my Spring Boot application. Can someone guide me through the process?</p><ul><li>WebSocket configuration</li><li>Message handling</li><li>Client-side integration</li></ul>`,
+            author: {
+              id: 1,
+              name: "John Doe",
+              username: "john_doe",
+              avatar:
+                "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+              reputation: 100,
+              title: "USER",
+              isOnline: true,
+            },
+            createdAt: new Date().toISOString(),
+            lastActivity: new Date().toISOString(),
+            views: 0,
+            votes: 0,
+            answerCount: 1,
+            followers: 0,
+            tags: ["java", "spring-boot", "websocket", "real-time"],
+            userVote: null,
+            isBookmarked: false,
+            isFollowing: false,
+            acceptedAnswerAt: null,
+            isClosed: false,
+            closeReason: null,
+            hasAcceptedAnswer: false,
+          };
+          setQuestion(mockQuestion);
+        }
+      } catch (error) {
+        console.error("Error loading question:", error);
       }
-    } catch (error) {
-      console.error("Error loading question:", error);
-    }
+    };
+
+    fetchQuestion();
   }, [questionId, getAllQuestions]);
 
   // Mock answers data - you'll want to replace this with actual API calls
-//   useEffect(() => {
-//     const mockAnswers = [
-//       {
-//         id: 1,
-//         content: `<p>Here's a comprehensive guide to implementing WebSocket in Spring Boot:</p>
+  useEffect(() => {
+    const mockAnswers = [
+      {
+        id: 1,
+        content: `<p>Here's a comprehensive guide to implementing WebSocket in Spring Boot:</p>
 
-// <h3>1. Add Dependencies</h3>
-// <p>First, add the WebSocket dependency to your <code>pom.xml</code>:</p>
-// <pre><code>&lt;dependency&gt;
-//     &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-//     &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
-// &lt;/dependency&gt;</code></pre>
+<h3>1. Add Dependencies</h3>
+<p>First, add the WebSocket dependency to your <code>pom.xml</code>:</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
 
-// <h3>2. WebSocket Configuration</h3>
-// <pre><code>@Configuration
-// @EnableWebSocket
-// public class WebSocketConfig implements WebSocketConfigurer {
+<h3>2. WebSocket Configuration</h3>
+<pre><code>@Configuration
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
 
-//     @Override
-//     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-//         registry.addHandler(new MyWebSocketHandler(), "/websocket")
-//                 .setAllowedOrigins("*");
-//     }
-// }</code></pre>
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(new MyWebSocketHandler(), "/websocket")
+                .setAllowedOrigins("*");
+    }
+}</code></pre>
 
-// <h3>3. WebSocket Handler</h3>
-// <pre><code>@Component
-// public class MyWebSocketHandler extends TextWebSocketHandler {
+<h3>3. WebSocket Handler</h3>
+<pre><code>@Component
+public class MyWebSocketHandler extends TextWebSocketHandler {
 
-//     @Override
-//     public void afterConnectionEstablished(WebSocketSession session) {
-//         System.out.println("Connection established: " + session.getId());
-//     }
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        System.out.println("Connection established: " + session.getId());
+    }
 
-//     @Override
-//     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-//         String payload = message.getPayload();
-//         session.sendMessage(new TextMessage("Echo: " + payload));
-//     }
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        String payload = message.getPayload();
+        session.sendMessage(new TextMessage("Echo: " + payload));
+    }
 
-//     @Override
-//     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-//         System.out.println("Connection closed: " + session.getId());
-//     }
-// }</code></pre>
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        System.out.println("Connection closed: " + session.getId());
+    }
+}</code></pre>
 
-// <p>This setup provides a basic WebSocket implementation that echoes messages back to the client.</p>`,
-//         author: {
-//           id: 2,
-//           name: "Spring Expert",
-//           username: "spring_expert",
-//           avatar:
-//             "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-//           reputation: 2340,
-//           title: "Spring Specialist",
-//           isOnline: false,
-//         },
-//         createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-//         editedAt: null,
-//         isEdited: false,
-//         votes: 23,
-//         userVote: null,
-//         isAccepted: false,
-//         commentCount: 2,
-//         comments: [
-//           {
-//             id: 1,
-//             content:
-//               "Great explanation! Could you also show how to handle STOMP protocol?",
-//             author: {
-//               id: 1,
-//               name: "John Doe",
-//               username: "john_doe",
-//               avatar:
-//                 "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-//               reputation: 100,
-//             },
-//             createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
-//             likes: 3,
-//           },
-//         ],
-//       },
-//     ];
+<p>This setup provides a basic WebSocket implementation that echoes messages back to the client.</p>`,
+        author: {
+          id: 2,
+          name: "Spring Expert",
+          username: "spring_expert",
+          avatar:
+            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+          reputation: 2340,
+          title: "Spring Specialist",
+          isOnline: false,
+        },
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+        editedAt: null,
+        isEdited: false,
+        votes: 23,
+        userVote: null,
+        isAccepted: false,
+        commentCount: 2,
+        comments: [
+          {
+            id: 1,
+            content:
+              "Great explanation! Could you also show how to handle STOMP protocol?",
+            author: {
+              id: 1,
+              name: "John Doe",
+              username: "john_doe",
+              avatar:
+                "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+              reputation: 100,
+            },
+            createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+            likes: 3,
+          },
+        ],
+      },
+    ];
 
-//     setAnswers(mockAnswers);
-//   }, []);
+    setAnswers(mockAnswers);
+  }, []);
 
   // Mock related questions
   useEffect(() => {
@@ -351,15 +352,17 @@ const QuestionDetailAnswers = () => {
 
   // Handle comment submission
   const handleComment = async (answerId, content) => {
+    if (!currentUser) return;
+
     const newComment = {
       id: Date.now(),
       content,
       author: {
         id: currentUser.id,
-        name: currentUser.displayName,
+        name: currentUser.displayName || currentUser.name,
         username: currentUser.username,
-        avatar: currentUser.avatarUrl,
-        reputation: currentUser.reputationScore,
+        avatar: currentUser.avatarUrl || currentUser.avatar,
+        reputation: currentUser.reputationScore || currentUser.reputation,
       },
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -394,10 +397,10 @@ const QuestionDetailAnswers = () => {
         content,
         author: {
           id: currentUser.id,
-          name: currentUser.displayName,
+          name: currentUser.displayName || currentUser.name,
           username: currentUser.username,
-          avatar: currentUser.avatarUrl,
-          reputation: currentUser.reputationScore,
+          avatar: currentUser.avatarUrl || currentUser.avatar,
+          reputation: currentUser.reputationScore || currentUser.reputation,
           title: currentUser.role,
           isOnline: true,
         },

@@ -1,64 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import questionService from '../../utils/questionService';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import Header from '../../components/ui/Header';
-import QuestionTitleInput from './components/QuestionTitleInput';
-import RichTextEditor from './components/RichTextEditor';
-import TagSelector from './components/TagSelector';
-import PostingGuidelines from './components/PostingGuidelines';
-import RelatedQuestions from './components/RelatedQuestions';
-import DraftManager from './components/DraftManager';
-import { useQuestions } from 'contexts/QuestionContext';
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import questionService from "../../utils/questionService";
+import Icon from "../../components/AppIcon";
+import Button from "../../components/ui/Button";
+import Header from "../../components/ui/Header";
+import QuestionTitleInput from "./components/QuestionTitleInput";
+import RichTextEditor from "./components/RichTextEditor";
+import TagSelector from "./components/TagSelector";
+import PostingGuidelines from "./components/PostingGuidelines";
+import RelatedQuestions from "./components/RelatedQuestions";
+import DraftManager from "./components/DraftManager";
+import { useQuestions } from "contexts/QuestionContext";
 
 const AskQuestion = () => {
   const location = useLocation();
   const { user, loading: authLoading, userProfile, getCurrentUser } = useAuth();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [currentUser, setCurrentUser] = useState(userProfile || user);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const { createQuestion } = useQuestions();
 
-
   const navigate = useNavigate();
-  // const [user, setUser] = useState('');
-  console.log(userProfile)
-  const token = localStorage.getItem('token')
-  
-  // Check if user is authenticated
-  useEffect( async () => {
-    const newUser = await getCurrentUser(token);
-    setUser(newUser)
-    console.log(user)
-  }, [location]);
+  const token = localStorage.getItem("token");
 
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        if (token && !currentUser) {
+          const newUser = await getCurrentUser(token);
+          setCurrentUser(newUser);
+          console.log(newUser);
+        } else if (userProfile || user) {
+          setCurrentUser(userProfile || user);
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [location, token, userProfile, user, getCurrentUser, currentUser]);
 
   const validateForm = () => {
     const newErrors = {};
 
     if (!title.trim()) {
-      newErrors.title = 'Question title is required';
+      newErrors.title = "Question title is required";
     } else if (title.trim().length < 10) {
-      newErrors.title = 'Title must be at least 10 characters long';
+      newErrors.title = "Title must be at least 10 characters long";
     } else if (title.trim().length > 150) {
-      newErrors.title = 'Title must be less than 150 characters';
+      newErrors.title = "Title must be less than 150 characters";
     }
 
-    if (!content.trim() || content.trim() === '<p></p>' || content.trim() === '<br>') {
-      newErrors.content = 'Question details are required';
+    if (
+      !content.trim() ||
+      content.trim() === "<p></p>" ||
+      content.trim() === "<br>"
+    ) {
+      newErrors.content = "Question details are required";
     } else if (content.trim().length < 30) {
-      newErrors.content = 'Question details must be at least 30 characters long';
+      newErrors.content =
+        "Question details must be at least 30 characters long";
     }
 
     if (selectedTags.length === 0) {
-      newErrors.tags = 'At least one tag is required';
+      newErrors.tags = "At least one tag is required";
     } else if (selectedTags.length > 5) {
-      newErrors.tags = 'Maximum 5 tags allowed';
+      newErrors.tags = "Maximum 5 tags allowed";
     }
 
     setErrors(newErrors);
@@ -67,13 +80,14 @@ const AskQuestion = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    if (!userProfile?.id) {
-      setErrors({ submit: 'You must be logged in to post a question' });
+    // Use currentUser state instead of userProfile directly
+    if (!currentUser?.email && !currentUser?.id) {
+      setErrors({ submit: "You must be logged in to post a question" });
       return;
     }
 
@@ -81,28 +95,29 @@ const AskQuestion = () => {
 
     try {
       const questionData = {
-        userId: userProfile.id,
+        userId: currentUser.id,
         title: title.trim(),
         description: content.trim(),
         tags: selectedTags,
       };
 
       const result = await createQuestion(questionData);
-      console.log('Question created:', result);
-      
-      
+      console.log("Question created:", result);
+
       if (result) {
         // Clear draft after successful submission
-        localStorage.removeItem('ask_question_draft');
-        
+        localStorage.removeItem("ask_question_draft");
+
         // Redirect to the new question page
         navigate(`/question-detail-answers?id=${result.id}`);
       } else {
-        setErrors({ submit: result?.error || 'Failed to post question. Please try again.' });
+        setErrors({
+          submit: result?.error || "Failed to post question. Please try again.",
+        });
       }
     } catch (error) {
-      console.log('Error posting question:', error);
-      setErrors({ submit: 'Failed to post question. Please try again.' });
+      console.log("Error posting question:", error);
+      setErrors({ submit: "Failed to post question. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +127,7 @@ const AskQuestion = () => {
     if (title || content || selectedTags.length > 0) {
       setShowCancelDialog(true);
     } else {
-      navigate('/questions-dashboard');
+      navigate("/questions-dashboard");
     }
   };
 
@@ -122,16 +137,16 @@ const AskQuestion = () => {
         title,
         content,
         tags: selectedTags,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      localStorage.setItem('ask_question_draft', JSON.stringify(draft));
+      localStorage.setItem("ask_question_draft", JSON.stringify(draft));
     }
-    navigate('/questions-dashboard');
+    navigate("/questions-dashboard");
   };
 
   const handleLoadDraft = (draft) => {
-    setTitle(draft.title || '');
-    setContent(draft.content || '');
+    setTitle(draft.title || "");
+    setContent(draft.content || "");
     setSelectedTags(draft.tags || []);
     setErrors({});
   };
@@ -139,31 +154,35 @@ const AskQuestion = () => {
   const hasContent = title || content || selectedTags.length > 0;
 
   // Show loading state during auth check
-  // if (authLoading) {
-  //   return (
-  //     <div className="min-h-screen bg-background">
-  //       <Header />
-  //       <div className="container mx-auto px-4 py-6 flex items-center justify-center">
-  //         <div className="text-center space-y-4">
-  //           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-  //           <p className="text-muted-foreground">Loading...</p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  // Redirect message for unauthenticated users
-  console.log(user)
-  if (!user) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-6 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <h2 className="text-2xl font-bold text-foreground">Sign In Required</h2>
-            <p className="text-muted-foreground">You need to sign in to ask a question.</p>
-            <Button onClick={() => navigate('/user-registration')}>
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect message for unauthenticated users
+  console.log(currentUser);
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-6 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold text-foreground">
+              Sign In Required
+            </h2>
+            <p className="text-muted-foreground">
+              You need to sign in to ask a question.
+            </p>
+            <Button onClick={() => navigate("/user-registration")}>
               Sign In
             </Button>
           </div>
@@ -175,14 +194,14 @@ const AskQuestion = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Page Header */}
           <div className="mb-8">
             <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-2">
-              <button 
-                onClick={() => navigate('/questions-dashboard')}
+              <button
+                onClick={() => navigate("/questions-dashboard")}
                 className="hover:text-foreground transition-colors"
               >
                 Questions
@@ -190,7 +209,9 @@ const AskQuestion = () => {
               <Icon name="ChevronRight" size={16} />
               <span>Ask Question</span>
             </div>
-            <h1 className="text-3xl font-bold text-foreground">Ask a Question</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              Ask a Question
+            </h1>
             <p className="text-muted-foreground mt-2">
               Get help from the community by asking a clear, detailed question
             </p>
@@ -241,13 +262,12 @@ const AskQuestion = () => {
                         type="submit"
                         loading={isSubmitting}
                         disabled={!hasContent}
-                        // onClick={handleSubmit}
                         iconName="Send"
                         iconPosition="left"
                         iconSize={16}
                         className="sm:min-w-[140px]"
                       >
-                        {isSubmitting ? 'Posting...' : 'Post Question'}
+                        {isSubmitting ? "Posting..." : "Post Question"}
                       </Button>
                       <Button
                         type="button"
@@ -260,16 +280,20 @@ const AskQuestion = () => {
                         Cancel
                       </Button>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <Icon name="Users" size={16} />
-                      <span>Your question will be visible to all community members</span>
+                      <span>
+                        Your question will be visible to all community members
+                      </span>
                     </div>
                   </div>
 
                   {errors.submit && (
                     <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                      <p className="text-sm text-destructive">{errors.submit}</p>
+                      <p className="text-sm text-destructive">
+                        {errors.submit}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -290,15 +314,21 @@ const AskQuestion = () => {
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-popover border rounded-lg shadow-lg p-6 w-full max-w-md">
             <div className="flex items-start space-x-3 mb-4">
-              <Icon name="AlertTriangle" size={20} className="text-warning mt-0.5 flex-shrink-0" />
+              <Icon
+                name="AlertTriangle"
+                size={20}
+                className="text-warning mt-0.5 flex-shrink-0"
+              />
               <div>
-                <h3 className="text-lg font-semibold text-popover-foreground">Discard changes?</h3>
+                <h3 className="text-lg font-semibold text-popover-foreground">
+                  Discard changes?
+                </h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   You have unsaved changes. What would you like to do?
                 </p>
               </div>
             </div>
-            
+
             <div className="flex flex-col gap-2">
               <Button
                 onClick={() => confirmCancel(true)}
