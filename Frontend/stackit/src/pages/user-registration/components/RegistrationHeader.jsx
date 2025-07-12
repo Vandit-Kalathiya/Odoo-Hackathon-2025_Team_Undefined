@@ -16,14 +16,17 @@ const RegistrationHeader = () => {
     <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         {/* Logo */}
-        <div 
-          className="flex items-center space-x-2 cursor-pointer" 
-          onClick={handleLogoClick}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Icon name="Stack" size={20} />
+                <div className="flex items-center space-x-">
+          <div
+            className="flex items-center space-x-2 cursor-pointer"
+            onClick={() => handleNavigation('/questions-dashboard')}
+          >
+            <img
+              src="/public/logo.svg"
+              alt="StackIt Logo"
+              className="h-36"
+            />
           </div>
-          <span className="text-xl font-semibold text-foreground">StackIt</span>
         </div>
 
         {/* Sign In Link */}
