@@ -1,5 +1,6 @@
 package com.stackit.chat_manage_service.Entity;
 
+import com.stackit.chat_manage_service.Auth.Entities.User;
 import com.stackit.chat_manage_service.Entity.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.Data;
