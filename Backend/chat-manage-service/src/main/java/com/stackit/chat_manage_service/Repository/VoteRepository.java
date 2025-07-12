@@ -1,7 +1,7 @@
 package com.stackit.chat_manage_service.Repository;
 
+import com.stackit.chat_manage_service.Auth.Entities.User;
 import com.stackit.chat_manage_service.Entity.Answer;
-import com.stackit.chat_manage_service.Entity.User;
 import com.stackit.chat_manage_service.Entity.Vote;
 import com.stackit.chat_manage_service.Entity.enums.VoteType;
 import org.springframework.data.jpa.repository.JpaRepository;
