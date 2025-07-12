@@ -10,12 +10,12 @@ const UserHeader = ({ user, isOwnProfile, onEditProfile }) => {
     setIsFollowing(!isFollowing);
   };
 
-  const formatJoinDate = (date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'long',
-      year: 'numeric'
-    }).format(new Date(date));
-  };
+  // const formatJoinDate = (date) => {
+  //   return new Intl.DateTimeFormat('en-US', {
+  //     month: 'long',
+  //     year: 'numeric'
+  //   }).format(new Date(date));
+  // };
 
   const getReputationColor = (reputation) => {
     if (reputation >= 10000) return 'text-warning';
@@ -30,7 +30,7 @@ const UserHeader = ({ user, isOwnProfile, onEditProfile }) => {
         {/* Avatar */}
         <div className="relative">
           <Image
-            src={user.avatar}
+            src={user.name}
             alt={user.name}
             className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-background shadow-lg"
           />
@@ -49,7 +49,7 @@ const UserHeader = ({ user, isOwnProfile, onEditProfile }) => {
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
                   <Icon name="Calendar" size={16} />
-                  <span>Joined {formatJoinDate(user.joinDate)}</span>
+                  {/* <span>Joined {formatJoinDate(user.joinDate)}</span> */}
                 </div>
                 <div className="flex items-center space-x-1">
                   <Icon name="MapPin" size={16} />
@@ -99,7 +99,7 @@ const UserHeader = ({ user, isOwnProfile, onEditProfile }) => {
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted/50 rounded-lg">
               <div className={`text-2xl font-bold ${getReputationColor(user.reputation)}`}>
                 {user.reputation.toLocaleString()}
@@ -124,7 +124,7 @@ const UserHeader = ({ user, isOwnProfile, onEditProfile }) => {
               </div>
               <div className="text-xs text-muted-foreground">Accepted</div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

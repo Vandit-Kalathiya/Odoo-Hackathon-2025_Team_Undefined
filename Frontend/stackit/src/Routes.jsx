@@ -10,24 +10,24 @@ import UserProfile from "pages/user-profile";
 import AskQuestion from "pages/ask-question";
 import AdminDashboard from "pages/admin-dashboard";
 import NotFound from "pages/NotFound";
+import StackItLanding from "pages/LandingPage/StackItLanding";
 
 const Routes = () => {
   return (
     <BrowserRouter>
-      <ErrorBoundary>
+      {/* <ErrorBoundary> */}
       <ScrollToTop />
       <RouterRoutes>
-        {/* Define your routes here */}
-        <Route path="/" element={<QuestionsDashboard />} />
+        <Route path="/" element={<StackItLanding />} />
         <Route path="/user-registration" element={<UserRegistration />} />
         <Route path="/questions-dashboard" element={<QuestionsDashboard />} />
         <Route path="/question-detail-answers" element={<QuestionDetailAnswers />} />
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/ask-question" element={<AskQuestion />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="*" element={<NotFound />} />
+        {/* <Route path="*" element={<NotFound />} /> */}
       </RouterRoutes>
-      </ErrorBoundary>
+      {/* </ErrorBoundary> */}
     </BrowserRouter>
   );
 };

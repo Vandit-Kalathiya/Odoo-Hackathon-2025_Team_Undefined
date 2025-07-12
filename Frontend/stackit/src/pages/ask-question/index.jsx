@@ -26,7 +26,16 @@ const AskQuestion = () => {
   const { createQuestion } = useQuestions();
 
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  // const [user, setUser] = useState('');
+  console.log(userProfile)
+  const token = localStorage.getItem('token')
+  
+  // Check if user is authenticated
+  useEffect( async () => {
+    const newUser = await getCurrentUser(token);
+    // setUser(newUser)
+    console.log(newUser)
+  }, []);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
