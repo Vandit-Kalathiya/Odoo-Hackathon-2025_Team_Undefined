@@ -13,7 +13,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
@@ -27,9 +26,9 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     Page<Question> findByTitleContainingIgnoreCaseAndIsActiveTrue(String title, Pageable pageable);
 
-    @Query("SELECT q FROM Question q WHERE q.isActive = true AND " +
+    @Query("SELECT DISTINCT q FROM Question q LEFT JOIN FETCH q.tags LEFT JOIN FETCH q.user WHERE q.isActive = true AND " +
             "(LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(q.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+            "LOWER(q.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) ORDER BY q.createdAt DESC")
     Page<Question> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
     @Query("SELECT q FROM Question q JOIN q.tags t WHERE t IN :tags AND q.isActive = true")
