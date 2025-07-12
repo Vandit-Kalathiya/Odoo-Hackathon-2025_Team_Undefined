@@ -26,7 +26,7 @@ const NotificationBell = () => {
         userNotifications?.content || userNotifications || [];
       const unreadNotifications = notificationsList.filter((n) => !n.isRead);
 
-      setNotifications(notificationsList);
+      setNotifications(unreadNotifications);
       setUnreadCount(unreadNotifications.length);
     } catch (error) {
       console.error("Error fetching notifications:", error);
