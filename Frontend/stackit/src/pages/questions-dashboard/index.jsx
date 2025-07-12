@@ -9,6 +9,7 @@ import QuestionsList from './components/QuestionsList';
 import StatsOverview from './components/StatsOverview';
 import QuickActions from './components/QuickActions';
 import Button from '../../components/ui/Button';
+import { useQuestions } from 'contexts/QuestionContext';
 
 const QuestionsDashboard = () => {
   const location = useLocation();
@@ -27,6 +28,7 @@ const QuestionsDashboard = () => {
     activeUsers: 0,
     todayQuestions: 0
   });
+  const { getAllQuestions } = useQuestions();
 
     const [user, setUser] = useState('');
     const token = localStorage.getItem('token')
@@ -81,11 +83,12 @@ const QuestionsDashboard = () => {
         authorId: selectedStatus === 'my-questions' ? user?.id : null,
       };
 
-      const result = await questionService.getQuestions(options);
+      const result = await getAllQuestions();
+      console.log('Loaded questions:', result);
       
-      if (result?.success) {
-        setQuestions(result.data || []);
-        setHasMore((result.data || []).length >= 20);
+      if (result) {
+        setQuestions(result.content || []);
+        setHasMore((result.content || []).length >= 20);
       } else {
         console.log('Failed to load questions:', result?.error);
         setQuestions([]);

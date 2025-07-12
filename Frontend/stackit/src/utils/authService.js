@@ -1,4 +1,6 @@
+import { use } from "react";
 import { supabase } from "./supabase";
+import { useAuth } from "contexts/AuthContext";
 
 const authService = {
   // Sign in with email and password
