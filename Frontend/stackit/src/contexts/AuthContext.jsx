@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
         email: data.data.email,
         name: data.data.fullName,
         role: data.data.role,
+        id: data.data.id,
       };
     } catch (err) {
       throw new Error("Failed to fetch user profile");
@@ -180,8 +181,6 @@ export function AuthProvider({ children }) {
 
       setUser(userProfile ? true : false);
       setUserProfile(userProfile);
-
-      console.log(user);
 
       return { success: true, data: userProfile };
     } catch (error) {
