@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
-import Icon from '../../../components/AppIcon';
+import React, { useState } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import Icon from "../../../components/AppIcon";
 
-const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogin }) => {
+const RegistrationForm = ({
+  onSubmit,
+  isLoading: externalLoading,
+  onSwitchToLogin,
+}) => {
   const { signUp, authError } = useAuth();
   const [formData, setFormData] = useState({
-    fullName: '',
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+    fullName: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
     agreedToTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -21,39 +25,40 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
     const newErrors = {};
 
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+      newErrors.fullName = "Full name is required";
     } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters';
+      newErrors.fullName = "Full name must be at least 2 characters";
     }
 
     if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
+      newErrors.username = "Username is required";
     } else if (formData.username.trim().length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+      newErrors.username = "Username must be at least 3 characters";
     } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username.trim())) {
-      newErrors.username = 'Username can only contain letters, numbers, and underscores';
+      newErrors.username =
+        "Username can only contain letters, numbers, and underscores";
     }
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password must be at least 6 characters";
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = "Please confirm your password";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = "Passwords do not match";
     }
 
     if (!formData.agreedToTerms) {
-      newErrors.agreedToTerms = 'You must agree to the terms and conditions';
+      newErrors.agreedToTerms = "You must agree to the terms and conditions";
     }
 
     setErrors(newErrors);
@@ -61,56 +66,63 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-            const userData = {
+      const userData = {
         fullName: formData.fullName.trim(), // ✅ CORRECT key (camelCase, not snake_case)
         username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
       };
 
-      const result = await signUp(formData.email, formData.password, userData);
-      
+      console.log("User data:", userData);
+
+      const result = await signUp(userData);
+      console.log("Registration result:", result);
+
       if (result?.success) {
-        // Call the external onSubmit handler if provided
-        if (onSubmit) {
-          await onSubmit(formData);
-        } else {
-          // Default behavior - redirect to dashboard
-          window.location.href = '/questions-dashboard';
-        }
+        window.location.href = "/";
       }
     } catch (error) {
-      console.log('Registration error:', error);
+      console.log("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isSubmitDisabled = !formData.fullName || !formData.username || !formData.email || 
-                          !formData.password || !formData.confirmPassword || !formData.agreedToTerms;
+  const isSubmitDisabled =
+    !formData.fullName ||
+    !formData.username ||
+    !formData.email ||
+    !formData.password ||
+    !formData.confirmPassword ||
+    !formData.agreedToTerms;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-gray-200 rounded-2xl shadow-xl w-full max-w-md p-8">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 bg-white border border-gray-200 rounded-2xl shadow-xl w-full max-w-md p-8"
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           type="text"
           placeholder="Enter your full name"
           value={formData.fullName}
-          onChange={(e) => handleInputChange('fullName', e.target.value)}
+          onChange={(e) => handleInputChange("fullName", e.target.value)}
           error={errors.fullName}
           disabled={isLoading || externalLoading}
           icon="User"
@@ -120,7 +132,7 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
           type="text"
           placeholder="Choose a username"
           value={formData.username}
-          onChange={(e) => handleInputChange('username', e.target.value)}
+          onChange={(e) => handleInputChange("username", e.target.value)}
           error={errors.username}
           disabled={isLoading || externalLoading}
           icon="AtSign"
@@ -131,7 +143,7 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
         type="email"
         placeholder="Enter your email"
         value={formData.email}
-        onChange={(e) => handleInputChange('email', e.target.value)}
+        onChange={(e) => handleInputChange("email", e.target.value)}
         error={errors.email}
         disabled={isLoading || externalLoading}
         icon="Mail"
@@ -141,7 +153,7 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
         type="password"
         placeholder="Create a password"
         value={formData.password}
-        onChange={(e) => handleInputChange('password', e.target.value)}
+        onChange={(e) => handleInputChange("password", e.target.value)}
         error={errors.password}
         disabled={isLoading || externalLoading}
         icon="Lock"
@@ -151,7 +163,7 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
         type="password"
         placeholder="Confirm your password"
         value={formData.confirmPassword}
-        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
         error={errors.confirmPassword}
         disabled={isLoading || externalLoading}
         icon="Lock"
@@ -162,17 +174,25 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
           <input
             type="checkbox"
             checked={formData.agreedToTerms}
-            onChange={(e) => handleInputChange('agreedToTerms', e.target.checked)}
+            onChange={(e) =>
+              handleInputChange("agreedToTerms", e.target.checked)
+            }
             disabled={isLoading || externalLoading}
             className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
           <span className="text-sm text-muted-foreground leading-relaxed">
-            I agree to the{' '}
-            <a href="#" className="text-primary hover:text-primary/80 transition-colors">
+            I agree to the{" "}
+            <a
+              href="#"
+              className="text-primary hover:text-primary/80 transition-colors"
+            >
               Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="#" className="text-primary hover:text-primary/80 transition-colors">
+            </a>{" "}
+            and{" "}
+            <a
+              href="#"
+              className="text-primary hover:text-primary/80 transition-colors"
+            >
               Privacy Policy
             </a>
           </span>
@@ -185,7 +205,11 @@ const RegistrationForm = ({ onSubmit, isLoading: externalLoading, onSwitchToLogi
       {(authError || errors.submit) && (
         <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
           <div className="flex items-center space-x-2">
-            <Icon name="AlertCircle" size={16} className="text-destructive flex-shrink-0" />
+            <Icon
+              name="AlertCircle"
+              size={16}
+              className="text-destructive flex-shrink-0"
+            />
             <p className="text-sm text-destructive">
               {authError || errors.submit}
             </p>
