@@ -84,45 +84,81 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  // Sign in function
-  const signIn = async (email, password) => {
-    try {
-      setAuthError(null);
-      const result = await authService.signIn(email, password);
+ // Sign in function in AuthContext
+const signIn = async (email, password) => {
+  try {
+    setAuthError(null);
 
-      if (!result?.success) {
-        setAuthError(result?.error || "Login failed");
-        return { success: false, error: result?.error };
-      }
+    const response = await fetch("http://localhost:6002/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        login: email, // backend expects 'login', not 'email'
+        password: password,
+      }),
+    });
 
-      return { success: true, data: result.data };
-    } catch (error) {
-      const errorMsg = "Something went wrong during login. Please try again.";
-      setAuthError(errorMsg);
-      console.log("Sign in error:", error);
-      return { success: false, error: errorMsg };
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      setAuthError(result?.message || "Login failed");
+      return { success: false, error: result?.message };
     }
-  };
+
+    // Save token and user info to localStorage
+    localStorage.setItem("token", result.data.token);
+    localStorage.setItem("user", JSON.stringify(result.data));
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    const errorMsg = "Something went wrong during login. Please try again.";
+    setAuthError(errorMsg);
+    console.log("Sign in error:", error);
+    return { success: false, error: errorMsg };
+  }
+};
+
 
   // Sign up function
   const signUp = async (email, password, userData = {}) => {
-    try {
-      setAuthError(null);
-      const result = await authService.signUp(email, password, userData);
+  try {
+    setAuthError(null);
 
-      if (!result?.success) {
-        setAuthError(result?.error || "Signup failed");
-        return { success: false, error: result?.error };
-      }
+    const response = await fetch("http://localhost:6002/api/auth/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: userData.username || email.split('@')[0], // default if not provided
+        email,
+        fullName: userData.fullName || "", // provide blank if not passed
+        password,
+      }),
+    });
 
-      return { success: true, data: result.data };
-    } catch (error) {
-      const errorMsg = "Something went wrong during signup. Please try again.";
-      setAuthError(errorMsg);
-      console.log("Sign up error:", error);
-      return { success: false, error: errorMsg };
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      setAuthError(result?.message || "Signup failed");
+      return { success: false, error: result?.message };
     }
-  };
+
+    // Save token and user info to localStorage
+    localStorage.setItem("token", result.data.token);
+    localStorage.setItem("user", JSON.stringify(result.data));
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    const errorMsg = "Something went wrong during signup. Please try again.";
+    setAuthError(errorMsg);
+    console.log("Sign up error:", error);
+    return { success: false, error: errorMsg };
+  }
+};
+
 
   // Sign out function
   const signOut = async () => {
