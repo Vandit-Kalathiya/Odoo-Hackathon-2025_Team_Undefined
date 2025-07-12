@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import Header from "../../components/ui/Header";
 import Icon from "../../components/AppIcon";
@@ -10,212 +10,191 @@ import RelatedQuestions from "./components/RelatedQuestions";
 import QuestionStats from "./components/QuestionStats";
 import SortControls from "./components/SortControls";
 import { useQuestions } from "contexts/QuestionContext";
-import {
-  transformQuestionForDisplay,
-  transformCurrentUser,
-} from "../../utils/userHelpers";
 import { useAnswers } from "contexts/AnswerContext";
 import { useAuth } from "contexts/AuthContext";
 
 const QuestionDetailAnswers = () => {
   const location = useLocation();
+  const { user, userProfile } = useAuth();
   const [question, setQuestion] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [relatedQuestions, setRelatedQuestions] = useState([]);
   const [sortBy, setSortBy] = useState("votes");
   const [showAnswerEditor, setShowAnswerEditor] = useState(false);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const { getAllQuestions } = useQuestions();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const { getAllQuestions, getQuestionById } = useQuestions();
+  const { createAnswer, getAnswersByQuestion, acceptAnswer } = useAnswers();
   const questionId = new URLSearchParams(location.search).get("id");
-  const { createAnswer, getAnswersByQuestion } = useAnswers();
-  const { user, userProfile } = useAuth();
 
-  // Load answers for the question
-  useEffect(() => {
-    const fetchAnswers = async () => {
-      const allAnswers = await getAnswersByQuestion(questionId);
-      setAnswers(allAnswers);
+  // Current user from auth context
+  const currentUser = userProfile || user;
+
+  // Transform backend answer data to component format
+  const transformAnswer = (answerData) => {
+    return {
+      id: answerData.id,
+      content: answerData.content,
+      author: {
+        id: answerData.user?.id,
+        name: answerData.user?.displayName || answerData.user?.username,
+        username: answerData.user?.username,
+        avatar:
+          answerData.user?.avatarUrl ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            answerData.user?.displayName || answerData.user?.username || "U"
+          )}&background=6366f1&color=ffffff`,
+        reputation: answerData.user?.reputationScore || 0,
+        title: answerData.user?.role || "Member",
+        isOnline: true, // You might want to add this field to your backend
+      },
+      createdAt: answerData.createdAt,
+      editedAt: answerData.editedAt,
+      isEdited: !!answerData.editedAt,
+      votes: answerData.score || 0,
+      upvoteCount: answerData.upvoteCount || 0,
+      downvoteCount: answerData.downvoteCount || 0,
+      userVote: null, // You'll need to implement this based on current user's vote
+      isAccepted: answerData.isAccepted || false,
+      commentCount: 0, // You'll need to add comments system
+      comments: [], // You'll need to add comments system
+      questionId: answerData.question?.id,
     };
+  };
 
-    fetchAnswers();
-  }, [questionId, getAnswersByQuestion]);
-
-  // Mock current user - update this to match your user structure
-  useEffect(() => {
-    setCurrentUser(transformCurrentUser(userProfile));
-  }, [userProfile]);
-
-  // Transform your question object to match component expectations
+  // Transform backend question data to component format
   const transformQuestion = (questionData) => {
-    return transformQuestionForDisplay(questionData);
+    return {
+      id: questionData.id,
+      title: questionData.title,
+      content: questionData.description,
+      author: {
+        id: questionData.user?.id,
+        name: questionData.user?.displayName || questionData.user?.username,
+        username: questionData.user?.username,
+        avatar:
+          questionData.user?.avatarUrl ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            questionData.user?.displayName || questionData.user?.username || "U"
+          )}&background=6366f1&color=ffffff`,
+        reputation: questionData.user?.reputationScore || 0,
+        title: questionData.user?.role || "Member",
+        isOnline: true,
+      },
+      createdAt: questionData.createdAt,
+      lastActivity: questionData.updatedAt,
+      views: questionData.viewCount || 0,
+      votes: questionData.score || 0,
+      answerCount: questionData.answerCount || 0,
+      followers: 0, // You might want to add this field
+      tags: questionData.tags
+        ? questionData.tags.map((tag) =>
+            typeof tag === "string" ? tag : tag.name
+          )
+        : [],
+      userVote: null, // You'll need to implement this
+      isBookmarked: false, // You'll need to implement this
+      isFollowing: false, // You'll need to implement this
+      acceptedAnswerAt: questionData.acceptedAnswerId
+        ? questionData.updatedAt
+        : null,
+      isClosed: questionData.isClosed || false,
+      closeReason: questionData.closeReason,
+      hasAcceptedAnswer: questionData.hasAcceptedAnswer || false,
+      isActive: questionData.isActive !== false,
+    };
   };
 
   // Load question data
   useEffect(() => {
     const fetchQuestion = async () => {
       try {
-        const allQuestions = await getAllQuestions();
-        const foundQuestion = allQuestions.content.find(
-          (q) => q.id === parseInt(questionId)
-        );
+        setLoading(true);
+        const questionData = await getQuestionById(questionId);
 
-        if (foundQuestion) {
-          setQuestion(transformQuestion(foundQuestion));
+        if (questionData) {
+          setQuestion(transformQuestion(questionData));
         } else {
-          // Fallback mock question if not found
-          const mockQuestion = {
-            id: parseInt(questionId) || 1,
-            title: "How to implement WebSocket in Spring Boot?",
-            content: `<p>I'm trying to implement <strong>real-time messaging</strong> in my Spring Boot application. Can someone guide me through the process?</p><ul><li>WebSocket configuration</li><li>Message handling</li><li>Client-side integration</li></ul>`,
-            author: {
-              id: 1,
-              name: "John Doe",
-              username: "john_doe",
-              avatar:
-                "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-              reputation: 100,
-              title: "USER",
-              isOnline: true,
-            },
-            createdAt: new Date().toISOString(),
-            lastActivity: new Date().toISOString(),
-            views: 0,
-            votes: 0,
-            answerCount: 1,
-            followers: 0,
-            tags: ["java", "spring-boot", "websocket", "real-time"],
-            userVote: null,
-            isBookmarked: false,
-            isFollowing: false,
-            acceptedAnswerAt: null,
-            isClosed: false,
-            closeReason: null,
-            hasAcceptedAnswer: false,
-          };
-          setQuestion(mockQuestion);
+          setError("Question not found");
         }
       } catch (error) {
         console.error("Error loading question:", error);
+        setError("Failed to load question");
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchQuestion();
+    if (questionId) {
+      fetchQuestion();
+    }
+  }, [questionId, getQuestionById]);
+
+  // Load answers for the question
+  useEffect(() => {
+    const fetchAnswers = async () => {
+      try {
+        if (questionId) {
+          const answersData = await getAnswersByQuestion(questionId);
+          console.log("Fetched answers:", answersData);
+
+          if (Array.isArray(answersData)) {
+            const transformedAnswers = answersData.map(transformAnswer);
+            setAnswers(transformedAnswers);
+          } else if (
+            answersData?.content &&
+            Array.isArray(answersData.content)
+          ) {
+            // Handle paginated response
+            const transformedAnswers = answersData.content.map(transformAnswer);
+            setAnswers(transformedAnswers);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading answers:", error);
+      }
+    };
+
+    fetchAnswers();
+  }, [questionId, getAnswersByQuestion]);
+
+  // Load related questions
+  useEffect(() => {
+    const fetchRelatedQuestions = async () => {
+      try {
+        const allQuestions = await getAllQuestions();
+        if (allQuestions?.content) {
+          // Filter out current question and get first few as related
+          const related = allQuestions.content
+            .filter((q) => q.id !== parseInt(questionId))
+            .slice(0, 4)
+            .map((q) => ({
+              id: q.id,
+              title: q.title,
+              answerCount: q.answerCount || 0,
+              votes: q.score || 0,
+              views: q.viewCount || 0,
+              createdAt: q.createdAt,
+              tags: q.tags
+                ? q.tags.map((tag) =>
+                    typeof tag === "string" ? tag : tag.name
+                  )
+                : [],
+            }));
+
+          setRelatedQuestions(related);
+        }
+      } catch (error) {
+        console.error("Error loading related questions:", error);
+      }
+    };
+
+    if (questionId) {
+      fetchRelatedQuestions();
+    }
   }, [questionId, getAllQuestions]);
-
-  // Mock answers data - you'll want to replace this with actual API calls
-  useEffect(() => {
-    const mockAnswers = [
-      {
-        id: 1,
-        content: `<p>Here's a comprehensive guide to implementing WebSocket in Spring Boot:</p>
-
-<h3>1. Add Dependencies</h3>
-<p>First, add the WebSocket dependency to your <code>pom.xml</code>:</p>
-<pre><code>&lt;dependency&gt;
-    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-    &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
-&lt;/dependency&gt;</code></pre>
-
-<h3>2. WebSocket Configuration</h3>
-<pre><code>@Configuration
-@EnableWebSocket
-public class WebSocketConfig implements WebSocketConfigurer {
-
-    @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new MyWebSocketHandler(), "/websocket")
-                .setAllowedOrigins("*");
-    }
-}</code></pre>
-
-<h3>3. WebSocket Handler</h3>
-<pre><code>@Component
-public class MyWebSocketHandler extends TextWebSocketHandler {
-
-    @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
-        System.out.println("Connection established: " + session.getId());
-    }
-
-    @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String payload = message.getPayload();
-        session.sendMessage(new TextMessage("Echo: " + payload));
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        System.out.println("Connection closed: " + session.getId());
-    }
-}</code></pre>
-
-<p>This setup provides a basic WebSocket implementation that echoes messages back to the client.</p>`,
-        author: {
-          id: 2,
-          name: "Spring Expert",
-          username: "spring_expert",
-          avatar:
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-          reputation: 2340,
-          title: "Spring Specialist",
-          isOnline: false,
-        },
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        editedAt: null,
-        isEdited: false,
-        votes: 23,
-        userVote: null,
-        isAccepted: false,
-        commentCount: 2,
-        comments: [
-          {
-            id: 1,
-            content:
-              "Great explanation! Could you also show how to handle STOMP protocol?",
-            author: {
-              id: 1,
-              name: "John Doe",
-              username: "john_doe",
-              avatar:
-                "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-              reputation: 100,
-            },
-            createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
-            likes: 3,
-          },
-        ],
-      },
-    ];
-
-    setAnswers(mockAnswers);
-  }, []);
-
-  // Mock related questions
-  useEffect(() => {
-    const mockRelatedQuestions = [
-      {
-        id: 2,
-        title: "Spring Boot WebSocket with STOMP protocol",
-        answerCount: 5,
-        votes: 18,
-        views: 890,
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        tags: ["spring-boot", "websocket", "stomp"],
-      },
-      {
-        id: 3,
-        title: "Real-time chat application with Spring Boot",
-        answerCount: 7,
-        votes: 24,
-        views: 1245,
-        createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-        tags: ["spring-boot", "websocket", "chat"],
-      },
-    ];
-
-    setRelatedQuestions(mockRelatedQuestions);
-  }, []);
 
   // Sort answers based on selected criteria
   const sortedAnswers = useMemo(() => {
@@ -251,6 +230,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 
   // Handle question voting
   const handleQuestionVote = (questionId, voteType) => {
+    // TODO: Implement voting API call
     setQuestion((prev) => {
       if (!prev) return prev;
 
@@ -258,14 +238,11 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
       let newUserVote = voteType;
 
       if (prev.userVote === voteType) {
-        // Remove vote
         newUserVote = null;
         newVotes += voteType === "up" ? -1 : 1;
       } else if (prev.userVote) {
-        // Change vote
         newVotes += voteType === "up" ? 2 : -2;
       } else {
-        // New vote
         newVotes += voteType === "up" ? 1 : -1;
       }
 
@@ -279,6 +256,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 
   // Handle answer voting
   const handleAnswerVote = (answerId, voteType) => {
+    // TODO: Implement voting API call
     setAnswers((prev) =>
       prev.map((answer) => {
         if (answer.id !== answerId) return answer;
@@ -287,14 +265,11 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         let newUserVote = voteType;
 
         if (answer.userVote === voteType) {
-          // Remove vote
           newUserVote = null;
           newVotes += voteType === "up" ? -1 : 1;
         } else if (answer.userVote) {
-          // Change vote
           newVotes += voteType === "up" ? 2 : -2;
         } else {
-          // New vote
           newVotes += voteType === "up" ? 1 : -1;
         }
 
@@ -308,23 +283,32 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
   };
 
   // Handle answer acceptance
-  const handleAnswerAccept = (answerId) => {
-    setAnswers((prev) =>
-      prev.map((answer) => ({
-        ...answer,
-        isAccepted: answer.id === answerId,
-      }))
-    );
+  const handleAnswerAccept = async (answerId) => {
+    try {
+      const result = await acceptAnswer(answerId, currentUser.id);
+      console.log("Answer accepted:", result);
+      
+      // TODO: Implement accept answer API call
+      setAnswers((prev) =>
+        prev.map((answer) => ({
+          ...answer,
+          isAccepted: answer.id === answerId,
+        }))
+      );
 
-    setQuestion((prev) => ({
-      ...prev,
-      acceptedAnswerAt: new Date().toISOString(),
-      hasAcceptedAnswer: true,
-    }));
+      setQuestion((prev) => ({
+        ...prev,
+        acceptedAnswerAt: new Date().toISOString(),
+        hasAcceptedAnswer: true,
+      }));
+    } catch (error) {
+      console.error("Error accepting answer:", error);
+    }
   };
 
   // Handle bookmark
   const handleBookmark = (questionId, isBookmarked) => {
+    // TODO: Implement bookmark API call
     setQuestion((prev) => ({
       ...prev,
       isBookmarked,
@@ -333,6 +317,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 
   // Handle follow
   const handleFollow = (questionId, isFollowing) => {
+    // TODO: Implement follow API call
     setQuestion((prev) => ({
       ...prev,
       isFollowing,
@@ -349,7 +334,6 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      // You could show a toast notification here
     }
   };
 
@@ -357,6 +341,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
   const handleComment = async (answerId, content) => {
     if (!currentUser) return;
 
+    // TODO: Implement comment API call
     const newComment = {
       id: Date.now(),
       content,
@@ -392,47 +377,31 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     setIsSubmittingAnswer(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const ansData = {
+      const answerData = {
         content,
-        questionId: question.id,
-        userId: currentUser.id
+        questionId: parseInt(questionId),
+        userId: currentUser.id,
       };
 
-      console.log("Submitting answer:", ansData);
+      console.log("Submitting answer:", answerData);
+      const result = await createAnswer(answerData);
+      console.log("Answer submitted successfully:", result);
 
-      const res = await createAnswer(ansData);
+      if (result) {
+        // Transform the new answer and add to list
+        const newAnswer = transformAnswer({
+          ...result,
+          user: currentUser,
+          question: { id: parseInt(questionId) },
+        });
 
-      console.log("Answer submitted successfully:", res);
-
-      const newAnswer = {
-        id: Date.now(),
-        content,
-        author: {
-          id: currentUser.id,
-          name: currentUser.displayName || currentUser.name,
-          username: currentUser.username,
-          avatar: currentUser.avatarUrl || currentUser.avatar,
-          reputation: currentUser.reputationScore || currentUser.reputation,
-          title: currentUser.role,
-          isOnline: true,
-        },
-        createdAt: new Date().toISOString(),
-        votes: 0,
-        userVote: null,
-        isAccepted: false,
-        commentCount: 0,
-        comments: [],
-      };
-
-      setAnswers((prev) => [...prev, newAnswer]);
-      setQuestion((prev) => ({
-        ...prev,
-        answerCount: prev.answerCount + 1,
-      }));
-      setShowAnswerEditor(false);
+        setAnswers((prev) => [...prev, newAnswer]);
+        setQuestion((prev) => ({
+          ...prev,
+          answerCount: prev.answerCount + 1,
+        }));
+        setShowAnswerEditor(false);
+      }
     } catch (error) {
       console.error("Failed to submit answer:", error);
     } finally {
@@ -442,11 +411,11 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 
   // Handle related question click
   const handleRelatedQuestionClick = (relatedQuestion) => {
-    // In a real app, this would navigate to the question
     window.location.href = `/question-detail-answers?id=${relatedQuestion.id}`;
   };
 
-  if (!question) {
+  // Loading state
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -455,6 +424,30 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
             <div className="text-center">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading question...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !question) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Icon
+                name="AlertCircle"
+                size={48}
+                className="mx-auto mb-4 text-destructive"
+              />
+              <h3 className="text-lg font-medium text-card-foreground mb-2">
+                {error || "Question not found"}
+              </h3>
+              <Button onClick={() => window.history.back()}>Go Back</Button>
             </div>
           </div>
         </div>
@@ -520,7 +513,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
               <SortControls
                 sortBy={sortBy}
                 onSortChange={setSortBy}
-                answerCount={question.answerCount}
+                answerCount={answers.length}
               />
 
               {/* Answers List */}
