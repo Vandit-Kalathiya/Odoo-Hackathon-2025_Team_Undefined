@@ -9,6 +9,33 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
+  // Get current user profile from token
+  const getCurrentUser = async (token) => {
+    try {
+      const response = await fetch(`http://localhost:7000/api/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      await handleApiError(response);
+
+      // Since /current returns user profile data, we'll parse it
+      const data = await response.json();
+      console.log("curr ", data);
+
+      return {
+        email: data.data.email,
+        name: data.data.fullName,
+        role: data.data.role,
+      };
+    } catch (err) {
+      throw new Error("Failed to fetch user profile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -24,7 +51,7 @@ export function AuthProvider({ children }) {
           setUserProfile(userData);
           setAuthError(null);
         } catch (err) {
-          setError(err.message || "Failed to load user session");
+          setAuthError(err.message || "Failed to load user session");
           localStorage.removeItem("token");
           setUser(null);
           setUserProfile(null);
@@ -65,33 +92,6 @@ export function AuthProvider({ children }) {
     return response;
   };
 
-  // Get current user profile from token
-  const getCurrentUser = async (token) => {
-    try {
-      const response = await fetch(`http://localhost:7000/api/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      await handleApiError(response);
-
-      // Since /current returns user profile data, we'll parse it
-      const data = await response.json();
-      console.log("curr ", data);
-
-      return {
-        email: data.data.email,
-        name: data.data.fullName,
-        role: data.data.role,
-      };
-    } catch (err) {
-      throw new Error("Failed to fetch user profile");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Sign in function in AuthContext
   const signIn = async (email, password) => {
     try {
@@ -109,7 +109,7 @@ export function AuthProvider({ children }) {
         }),
       });
 
-      await handleApiError(response);
+      // await handleApiError(response);
 
       const result = await response.json();
 
@@ -128,7 +128,7 @@ export function AuthProvider({ children }) {
       setUser(userData ? true : false);
       setUserProfile(userData);
 
-      console.log(result.data)
+      console.log(result.data);
 
       return { success: true, data: result.data };
     } catch (error) {
@@ -145,47 +145,45 @@ export function AuthProvider({ children }) {
   console.log(userProfile);
 
   // Sign up function
-  const signUp = async (email, password, userData = {}) => {
+  const signUp = async (userData) => {
     try {
       setAuthError(null);
       setLoading(true);
+
+      const signUpRequest = userData;
 
       const response = await fetch("http://localhost:7000/api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: userData.username || email.split("@")[0], // default if not provided
-          email,
-          fullName: userData.fullName || "", // provide blank if not passed
-          password,
-        }),
+        body: JSON.stringify(signUpRequest),
       });
 
       await handleApiError(response);
 
       const result = await response.json();
+      console.log("Sign up result:", result);
+
+      console.log(result.data);
 
       if (!response.ok || !result.success) {
         setAuthError(result?.message || "Signup failed");
         return { success: false, error: result?.message };
       }
 
-      console.log(result.data);
-
       // Save token and user info to localStorage
       localStorage.setItem("token", result.data.token);
 
-      const userData = await getCurrentUser(result.data.token);
-      console.log(userData);
+      const userProfile = await getCurrentUser(result.data.token);
+      console.log(userProfile);
 
-      setUser(userData ? true : false);
-      setUserProfile(userData);
+      setUser(userProfile ? true : false);
+      setUserProfile(userProfile);
 
       console.log(user);
 
-      return { success: true, data: userData };
+      return { success: true, data: userProfile };
     } catch (error) {
       const errorMsg = "Something went wrong during signup. Please try again.";
       setAuthError(errorMsg);
@@ -198,13 +196,10 @@ export function AuthProvider({ children }) {
   const signOut = async () => {
     try {
       setAuthError(null);
-      const result = await authService.signOut();
-
-      if (!result?.success) {
-        setAuthError(result?.error || "Logout failed");
-        return { success: false, error: result?.error };
-      }
-
+      localStorage.removeItem("token");
+      setUser(null);
+      setUserProfile(null);
+      console.log("User signed out successfully");
       return { success: true };
     } catch (error) {
       const errorMsg = "Something went wrong during logout. Please try again.";

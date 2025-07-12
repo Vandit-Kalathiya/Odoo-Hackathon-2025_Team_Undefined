@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import Icon from '../AppIcon';
 import Image from '../AppImage';
 import Button from './Button';
+import { useAuth } from 'contexts/AuthContext';
 
 const UserMenu = ({ user, isMobile = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const {signOut} = useAuth();
   console.log(user)
 
   // Close dropdown when clicking outside
@@ -69,9 +71,9 @@ const UserMenu = ({ user, isMobile = false }) => {
     setIsOpen(false);
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     // Handle sign out logic here
-    console.log('Signing out...');
+    await signOut();
     setIsOpen(false);
   };
 
