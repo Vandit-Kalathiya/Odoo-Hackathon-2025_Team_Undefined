@@ -61,14 +61,19 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => handleNavigation('/questions-dashboard')}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="Stack" size={20} />
-            </div>
-            <span className="text-xl font-semibold text-foreground">StackIt</span>
+                <div className="flex items-center space-x-">
+          <div
+            className="flex items-center space-x-2 cursor-pointer"
+            onClick={() => handleNavigation('/questions-dashboard')}
+          >
+            <img
+              src="/public/logo.svg"
+              alt="StackIt Logo"
+              className="h-36"
+            />
           </div>
         </div>
+
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-1">
