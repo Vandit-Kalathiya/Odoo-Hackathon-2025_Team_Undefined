@@ -57,13 +57,13 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
 //                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/auth/signup", "/auth/login","/swagger-ui.html").permitAll()
-//                        .requestMatchers("/auth/admin/**").hasRole("ADMIN")
-//                        .requestMatchers("/api/auth/user/**").hasRole("USER")
-//                        .anyRequest().authenticated()
-//                )
-                .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().permitAll())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/signup", "/auth/login","/swagger-ui.html").permitAll()
+                        .requestMatchers("/auth/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/user/**").hasRole("USER")
+                        .anyRequest().authenticated()
+                )
+//                .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().permitAll())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
