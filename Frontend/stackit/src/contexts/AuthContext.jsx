@@ -4,8 +4,14 @@ import authService from "../utils/authService";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
+  const [user, setUser] = useState(true);
+  const [userProfile, setUserProfile] = useState({
+    id: "1",
+    username: "john_doe",
+    name: "john doe",
+    email: "john.doe@example.com",
+    avatar: "https://example.com/avatar.jpg"
+  });
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 

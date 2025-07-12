@@ -1,4 +1,6 @@
+import { use } from "react";
 import { supabase } from "./supabase";
+import { useAuth } from "contexts/AuthContext";
 
 const authService = {
   // Sign in with email and password
@@ -87,8 +89,8 @@ const authService = {
   // Get current session
   getSession: async () => {
     const token = localStorage.getItem("token");
-    const user = localStorage.getItem("user");
-    if (token && user) {
+    // const user = localStorage.getItem("user");
+    if (token) {
       return {
         success: true,
         data: {

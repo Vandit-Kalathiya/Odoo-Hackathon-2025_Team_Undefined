@@ -77,8 +77,8 @@ const UserMenu = ({ user, isMobile = false }) => {
 
   const getUserInitials = (name) => {
     return name
-      .map(word => word.charAt(0))
-      .join('')
+      // .map(word => word.charAt(0))
+      // .join('')
       .toUpperCase()
       .slice(0, 2);
   };
