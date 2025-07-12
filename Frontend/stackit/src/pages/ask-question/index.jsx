@@ -11,16 +11,18 @@ import TagSelector from './components/TagSelector';
 import PostingGuidelines from './components/PostingGuidelines';
 import RelatedQuestions from './components/RelatedQuestions';
 import DraftManager from './components/DraftManager';
+import { useQuestions } from 'contexts/QuestionContext';
 
 const AskQuestion = () => {
   const location = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, userProfile } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const { createQuestion } = useQuestions();
 
   // Check if user is authenticated
   useEffect(() => {
@@ -63,7 +65,7 @@ const AskQuestion = () => {
       return;
     }
 
-    if (!user?.id) {
+    if (!userProfile?.id) {
       setErrors({ submit: 'You must be logged in to post a question' });
       return;
     }
@@ -72,20 +74,22 @@ const AskQuestion = () => {
 
     try {
       const questionData = {
-        author_id: user.id,
+        userId: userProfile.id,
         title: title.trim(),
         description: content.trim(),
         tags: selectedTags,
       };
 
-      const result = await questionService.createQuestion(questionData);
+      const result = await createQuestion(questionData);
+      console.log('Question created:', result);
       
-      if (result?.success) {
+      
+      if (result) {
         // Clear draft after successful submission
         localStorage.removeItem('ask_question_draft');
         
         // Redirect to the new question page
-        window.location.href = `/question-detail-answers?id=${result.data.id}`;
+        window.location.href = `/question-detail-answers?id=${result.id}`;
       } else {
         setErrors({ submit: result?.error || 'Failed to post question. Please try again.' });
       }
@@ -229,6 +233,7 @@ const AskQuestion = () => {
                         type="submit"
                         loading={isSubmitting}
                         disabled={!hasContent}
+                        // onClick={handleSubmit}
                         iconName="Send"
                         iconPosition="left"
                         iconSize={16}

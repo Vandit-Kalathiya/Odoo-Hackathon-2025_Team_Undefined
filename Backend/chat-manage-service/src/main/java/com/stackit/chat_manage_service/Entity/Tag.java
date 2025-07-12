@@ -1,10 +1,7 @@
 package com.stackit.chat_manage_service.Entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -47,5 +44,7 @@ public class Tag {
 
     // Relationships
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    @ToString.Exclude // Prevent infinite recursion in toString
+    @EqualsAndHashCode.Exclude // Exclude from equals/hashCode to prevent lazy loading
     private Set<Question> questions;
 }

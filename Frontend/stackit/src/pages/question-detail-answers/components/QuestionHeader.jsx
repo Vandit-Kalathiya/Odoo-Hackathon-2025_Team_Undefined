@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
-import Icon from '../../../components/AppIcon';
-import Image from '../../../components/AppImage';
-import Button from '../../../components/ui/Button';
+import React, { useState } from "react";
+import Icon from "../../../components/AppIcon";
+import Image from "../../../components/AppImage";
+import Button from "../../../components/ui/Button";
 
-const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, currentUser }) => {
+const QuestionHeader = ({
+  question,
+  onVote,
+  onBookmark,
+  onShare,
+  onFollow,
+  currentUser,
+}) => {
   const [isFollowing, setIsFollowing] = useState(question.isFollowing || false);
-  const [isBookmarked, setIsBookmarked] = useState(question.isBookmarked || false);
+  const [isBookmarked, setIsBookmarked] = useState(
+    question.isBookmarked || false
+  );
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
@@ -18,12 +27,12 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -31,12 +40,37 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
     const now = new Date();
     const posted = new Date(date);
     const diffInHours = Math.floor((now - posted) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
+
+    if (diffInHours < 1) return "Just now";
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
     return formatDate(date);
+  };
+
+  // Handle potential missing avatar
+  const getAvatarSrc = () => {
+    if (question.author.avatar) return question.author.avatar;
+    if (question.author.avatarUrl) return question.author.avatarUrl;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      question.author.name || question.author.displayName
+    )}&background=6366f1&color=ffffff`;
+  };
+
+  const getAuthorName = () => {
+    return (
+      question.author.name ||
+      question.author.displayName ||
+      question.author.username
+    );
+  };
+
+  const getAuthorTitle = () => {
+    return question.author.title || question.author.role || "Member";
+  };
+
+  const getAuthorReputation = () => {
+    return question.author.reputation || question.author.reputationScore || 0;
   };
 
   return (
@@ -68,11 +102,17 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
             <span>Active {getTimeSince(question.lastActivity)}</span>
           </div>
         )}
+        {question.hasAcceptedAnswer && (
+          <div className="flex items-center space-x-1 text-success">
+            <Icon name="CheckCircle" size={14} />
+            <span>Has accepted answer</span>
+          </div>
+        )}
       </div>
 
       {/* Question Content */}
       <div className="prose prose-sm md:prose-base max-w-none mb-6">
-        <div 
+        <div
           className="text-card-foreground leading-relaxed"
           dangerouslySetInnerHTML={{ __html: question.content }}
         />
@@ -92,6 +132,28 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
         </div>
       )}
 
+      {/* Question Status Indicators */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {question.isClosed && (
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-destructive/10 text-destructive">
+            <Icon name="Lock" size={12} className="mr-1" />
+            Closed
+          </span>
+        )}
+        {question.hasAcceptedAnswer && (
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-success/10 text-success">
+            <Icon name="CheckCircle" size={12} className="mr-1" />
+            Answered
+          </span>
+        )}
+        {!question.isActive && (
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-muted text-muted-foreground">
+            <Icon name="Archive" size={12} className="mr-1" />
+            Inactive
+          </span>
+        )}
+      </div>
+
       {/* Question Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Vote and Action Buttons */}
@@ -101,8 +163,11 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onVote?.(question.id, 'up')}
-              className={`h-8 w-8 ${question.userVote === 'up' ? 'text-success bg-success/10' : ''}`}
+              onClick={() => onVote?.(question.id, "up")}
+              className={`h-8 w-8 ${
+                question.userVote === "up" ? "text-success bg-success/10" : ""
+              }`}
+              disabled={question.isClosed}
             >
               <Icon name="ChevronUp" size={16} />
             </Button>
@@ -112,8 +177,13 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onVote?.(question.id, 'down')}
-              className={`h-8 w-8 ${question.userVote === 'down' ? 'text-destructive bg-destructive/10' : ''}`}
+              onClick={() => onVote?.(question.id, "down")}
+              className={`h-8 w-8 ${
+                question.userVote === "down"
+                  ? "text-destructive bg-destructive/10"
+                  : ""
+              }`}
+              disabled={question.isClosed}
             >
               <Icon name="ChevronDown" size={16} />
             </Button>
@@ -124,7 +194,7 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
             variant="ghost"
             size="sm"
             onClick={handleBookmark}
-            className={isBookmarked ? 'text-warning' : ''}
+            className={isBookmarked ? "text-warning" : ""}
           >
             <Icon name={isBookmarked ? "Bookmark" : "BookmarkPlus"} size={16} />
           </Button>
@@ -139,7 +209,7 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
               iconPosition="left"
               iconSize={14}
             >
-              {isFollowing ? 'Following' : 'Follow'}
+              {isFollowing ? "Following" : "Follow"}
             </Button>
           )}
 
@@ -157,12 +227,21 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
         <div className="flex items-center space-x-3">
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Asked by</p>
-            <p className="text-sm font-medium text-card-foreground">{question.author.name}</p>
+            <div className="flex items-center space-x-1">
+              <p className="text-sm font-medium text-card-foreground">
+                {getAuthorName()}
+              </p>
+              {question.author.username && (
+                <p className="text-xs text-muted-foreground">
+                  @{question.author.username}
+                </p>
+              )}
+            </div>
           </div>
           <div className="relative">
             <Image
-              src={question.author.avatar}
-              alt={question.author.name}
+              src={getAvatarSrc()}
+              alt={getAuthorName()}
               className="w-10 h-10 rounded-full object-cover border-2 border-border"
             />
             {question.author.isOnline && (
@@ -171,10 +250,16 @@ const QuestionHeader = ({ question, onVote, onBookmark, onShare, onFollow, curre
           </div>
           <div className="text-left">
             <div className="flex items-center space-x-1">
-              <span className="text-sm font-medium text-primary">{question.author.reputation}</span>
-              <Icon name="Star" size={12} className="text-warning fill-current" />
+              <span className="text-sm font-medium text-primary">
+                {getAuthorReputation()}
+              </span>
+              <Icon
+                name="Star"
+                size={12}
+                className="text-warning fill-current"
+              />
             </div>
-            <p className="text-xs text-muted-foreground">{question.author.title}</p>
+            <p className="text-xs text-muted-foreground">{getAuthorTitle()}</p>
           </div>
         </div>
       </div>

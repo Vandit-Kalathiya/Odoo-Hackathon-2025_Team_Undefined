@@ -1,388 +1,224 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import QuestionHeader from './components/QuestionHeader';
-import AnswerCard from './components/AnswerCard';
-import AnswerEditor from './components/AnswerEditor';
-import RelatedQuestions from './components/RelatedQuestions';
-import QuestionStats from './components/QuestionStats';
-import SortControls from './components/SortControls';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import Header from "../../components/ui/Header";
+import Icon from "../../components/AppIcon";
+import Button from "../../components/ui/Button";
+import QuestionHeader from "./components/QuestionHeader";
+import AnswerCard from "./components/AnswerCard";
+import AnswerEditor from "./components/AnswerEditor";
+import RelatedQuestions from "./components/RelatedQuestions";
+import QuestionStats from "./components/QuestionStats";
+import SortControls from "./components/SortControls";
+import { useQuestions } from "contexts/QuestionContext";
+import {
+  transformQuestionForDisplay,
+  transformCurrentUser,
+} from "../../utils/userHelpers";
+import { all } from "axios";
 
 const QuestionDetailAnswers = () => {
   const location = useLocation();
   const [question, setQuestion] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [relatedQuestions, setRelatedQuestions] = useState([]);
-  const [sortBy, setSortBy] = useState('votes');
+  const [sortBy, setSortBy] = useState("votes");
   const [showAnswerEditor, setShowAnswerEditor] = useState(false);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const { getAllQuestions } = useQuestions();
+  const questionId = new URLSearchParams(location.search).get("id");
 
-  // Mock current user
+  // Mock current user - update this to match your user structure
   useEffect(() => {
-    setCurrentUser({
+    const mockUserData = {
       id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      reputation: 1520,
-      title: 'Senior Developer'
-    });
-  }, []);
-
-  // Mock question data
-  useEffect(() => {
-    const mockQuestion = {
-      id: 1,
-      title: 'How to implement React hooks for state management in complex applications?',
-      content: `<p>I'm working on a large React application and I'm struggling with state management using hooks. The application has multiple components that need to share state, and I'm finding it difficult to manage the complexity.</p>
-
-<p>Here's what I've tried so far:</p>
-
-<ul>
-<li>Using useState in parent components and passing props down</li>
-<li>Implementing useContext for global state</li>
-<li>Trying useReducer for complex state logic</li>
-</ul>
-
-<p>The main issues I'm facing are:</p>
-
-<ol>
-<li><strong>Performance:</strong> Components are re-rendering unnecessarily</li>
-<li><strong>Complexity:</strong> State logic is becoming hard to maintain</li>
-<li><strong>Testing:</strong> Difficult to test components with complex state dependencies</li>
-</ol>
-
-<p>What are the best practices for implementing React hooks in large applications? Should I consider using a state management library like Redux Toolkit or Zustand?</p>
-
-<p>Any code examples or architectural patterns would be greatly appreciated!</p>`,
-      author: {
-        id: 2,
-        name: 'Sarah Wilson',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-        reputation: 890,
-        title: 'Frontend Developer',
-        isOnline: true
-      },
-      createdAt: '2025-01-10T14:30:00Z',
-      lastActivity: '2025-01-12T09:15:00Z',
-      views: 1247,
-      votes: 15,
-      answerCount: 3,
-      followers: 8,
-      tags: ['react', 'hooks', 'state-management', 'javascript', 'frontend'],
-      userVote: null,
-      isBookmarked: false,
-      isFollowing: false,
-      acceptedAnswerAt: '2025-01-11T16:45:00Z'
+      username: "john_doe",
+      displayName: "John Doe",
+      email: "john@example.com",
+      avatarUrl:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+      reputationScore: 1520,
+      role: "USER",
     };
 
-    setQuestion(mockQuestion);
+    setCurrentUser(transformCurrentUser(mockUserData));
   }, []);
 
-  // Mock answers data
-  useEffect(() => {
-    const mockAnswers = [
-      {
-        id: 1,
-        content: `<p>Great question! For complex React applications, I recommend a layered approach to state management using hooks. Here's a comprehensive strategy:</p>
+  // Transform your question object to match component expectations
+  const transformQuestion = (questionData) => {
+    return transformQuestionForDisplay(questionData);
+  };
 
-<h3>1. State Categorization</h3>
-<p>First, categorize your state into different types:</p>
-<ul>
-<li><strong>Local State:</strong> Use <code>useState</code> for component-specific data</li>
-<li><strong>Shared State:</strong> Use <code>useContext</code> for data shared between related components</li>
-<li><strong>Global State:</strong> Use Redux Toolkit or Zustand for application-wide state</li>
-</ul>
-
-<h3>2. Performance Optimization</h3>
-<p>To prevent unnecessary re-renders:</p>
-<pre><code>// Use React.memo for components
-const MyComponent = React.memo(({ data }) => {
-  return &lt;div&gt;{data.name}&lt;/div&gt;;
-});
-
-// Use useMemo for expensive calculations
-const expensiveValue = useMemo(() => {
-  return computeExpensiveValue(data);
-}, [data]);
-
-// Use useCallback for event handlers
-const handleClick = useCallback(() => {
-  // handler logic
-}, [dependency]);</code></pre>
-
-<h3>3. Custom Hooks Pattern</h3>
-<p>Create custom hooks to encapsulate complex state logic:</p>
-<pre><code>function useUserData() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    fetchUser().then(userData => {
-      setUser(userData);
-      setLoading(false);
-    });
-  }, []);
-  
-  return { user, loading, setUser };
-}</code></pre>
-
-<p>For your specific use case, I'd recommend starting with this pattern and only introducing Redux Toolkit if you need time-travel debugging or complex middleware.</p>`,
-        author: {
-          id: 3,
-          name: 'Michael Chen',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-          reputation: 2340,
-          title: 'React Specialist',
-          isOnline: false
-        },
-        createdAt: '2025-01-11T10:20:00Z',
-        editedAt: '2025-01-11T16:45:00Z',
-        isEdited: true,
-        votes: 23,
-        userVote: 'up',
-        isAccepted: true,
-        commentCount: 5,
-        comments: [
-          {
-            id: 1,
-            content: 'This is exactly what I was looking for! The custom hooks pattern is brilliant.',
-            author: {
-              id: 2,
-              name: 'Sarah Wilson',
-              avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-              reputation: 890
-            },
-            createdAt: '2025-01-11T11:30:00Z',
-            likes: 3
-          },
-          {
-            id: 2,
-            content: 'Great explanation! Could you provide more details about when to choose Redux Toolkit over Zustand?',
-            author: {
-              id: 4,
-              name: 'Alex Rodriguez',
-              avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-              reputation: 1200
-            },
-            createdAt: '2025-01-11T14:15:00Z',
-            likes: 1
-          }
-        ]
-      },
-      {
-        id: 2,
-        content: `<p>I'd like to add to @MichaelChen's excellent answer with some practical considerations for testing:</p>
-
-<h3>Testing Strategy for Hook-based Components</h3>
-<p>When dealing with complex state management, testing becomes crucial. Here's my approach:</p>
-
-<h4>1. Testing Custom Hooks</h4>
-<pre><code>import { renderHook, act } from '@testing-library/react';
-import { useUserData } from './useUserData';
-
-test('should fetch user data', async () => {
-  const { result, waitForNextUpdate } = renderHook(() => useUserData());
-  
-  expect(result.current.loading).toBe(true);
-  
-  await waitForNextUpdate();
-  
-  expect(result.current.loading).toBe(false);
-  expect(result.current.user).toBeDefined();
-});</code></pre>
-
-<h4>2. Testing Context Providers</h4>
-<p>Create test utilities for context providers:</p>
-<pre><code>const TestWrapper = ({ children }) => (
-  &lt;UserContext.Provider value={mockUserValue}&gt;
-    {children}
-  &lt;/UserContext.Provider&gt;
-);
-
-test('component uses context correctly', () => {
-  render(&lt;MyComponent /&gt;, { wrapper: TestWrapper });
-  // assertions
-});</code></pre>
-
-<h3>Architecture Recommendations</h3>
-<p>For large applications, I recommend this structure:</p>
-<ul>
-<li><strong>hooks/</strong> - Custom hooks for business logic</li>
-<li><strong>contexts/</strong> - React contexts for shared state</li>
-<li><strong>store/</strong> - Redux store (if needed)</li>
-<li><strong>utils/</strong> - Helper functions</li>
-</ul>
-
-<p>This keeps your state management organized and testable.</p>`,
-        author: {
-          id: 5,
-          name: 'Emma Thompson',avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',reputation: 1890,title: 'Full Stack Engineer',
-          isOnline: true
-        },
-        createdAt: '2025-01-11T15:45:00Z',
-        votes: 12,
-        userVote: null,
-        isAccepted: false,
-        commentCount: 2,
-        comments: [
-          {
-            id: 3,
-            content: 'The testing examples are very helpful! Thanks for sharing the practical approach.',
-            author: {
-              id: 1,
-              name: 'John Doe',avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-              reputation: 1520
-            },
-            createdAt: '2025-01-11T16:20:00Z',
-            likes: 2
-          }
-        ]
-      },
-      {
-        id: 3,
-        content: `<p>Both previous answers are excellent! I want to share a real-world example from a project I recently worked on.</p>
-
-<h3>Case Study: E-commerce Dashboard</h3>
-<p>We had a complex dashboard with multiple data sources and real-time updates. Here's how we structured it:</p>
-
-<h4>1. Data Layer</h4>
-<pre><code>// hooks/useProducts.js
-export function useProducts() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchProducts = useCallback(async () => {
+  // Load question data
+  useEffect(async () => {
     try {
-      setLoading(true);
-      const data = await api.getProducts();
-      setProducts(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const allQuestions = await getAllQuestions();
+      console.log(allQuestions);
+      
+      const foundQuestion = allQuestions.content.find(
+        (q) => q.id === parseInt(questionId)
+      );
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  return { products, loading, error, refetch: fetchProducts };
-}</code></pre>
-
-<h4>2. WebSocket Integration</h4>
-<pre><code>// hooks/useWebSocket.js
-export function useWebSocket(url) {
-  const [socket, setSocket] = useState(null);
-  const [lastMessage, setLastMessage] = useState(null);
-
-  useEffect(() => {
-    const ws = new WebSocket(url);
-    ws.onmessage = (event) => {
-      setLastMessage(JSON.parse(event.data));
-    };
-    setSocket(ws);
-
-    return () => ws.close();
-  }, [url]);
-
-  return { socket, lastMessage };
-}</code></pre>
-
-<h3>Performance Results</h3>
-<p>After implementing this pattern:</p>
-<ul>
-<li>Reduced bundle size by 40% (compared to Redux)</li>
-<li>Improved component render performance</li>
-<li>Easier onboarding for new developers</li>
-<li>Better test coverage</li>
-</ul>
-
-<p>The key is to start simple and only add complexity when needed. Don't over-engineer from the beginning!</p>`,
-        author: {
-          id: 6,
-          name: 'David Park',avatar: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=150&h=150&fit=crop&crop=face',reputation: 1650,title: 'Senior Frontend Architect',
-          isOnline: false
-        },
-        createdAt: '2025-01-12T08:30:00Z',
-        votes: 8,
-        userVote: null,
-        isAccepted: false,
-        commentCount: 1,
-        comments: [
-          {
-            id: 4,
-            content: 'Love the real-world example! The WebSocket integration is particularly useful.',
-            author: {
-              id: 2,
-              name: 'Sarah Wilson',avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-              reputation: 890
-            },
-            createdAt: '2025-01-12T09:15:00Z',
-            likes: 1
-          }
-        ]
+      if (foundQuestion) {
+        setQuestion(transformQuestion(foundQuestion));
+      } else {
+        // Fallback mock question if not found
+        const mockQuestion = {
+          id: parseInt(questionId) || 1,
+          title: "How to implement WebSocket in Spring Boot?",
+          content: `<p>I'm trying to implement <strong>real-time messaging</strong> in my Spring Boot application. Can someone guide me through the process?</p><ul><li>WebSocket configuration</li><li>Message handling</li><li>Client-side integration</li></ul>`,
+          author: {
+            id: 1,
+            name: "John Doe",
+            username: "john_doe",
+            avatar:
+              "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+            reputation: 100,
+            title: "USER",
+            isOnline: true,
+          },
+          createdAt: new Date().toISOString(),
+          lastActivity: new Date().toISOString(),
+          views: 0,
+          votes: 0,
+          answerCount: 1,
+          followers: 0,
+          tags: ["java", "spring-boot", "websocket", "real-time"],
+          userVote: null,
+          isBookmarked: false,
+          isFollowing: false,
+          acceptedAnswerAt: null,
+          isClosed: false,
+          closeReason: null,
+          hasAcceptedAnswer: false,
+        };
+        setQuestion(mockQuestion);
       }
-    ];
+    } catch (error) {
+      console.error("Error loading question:", error);
+    }
+  }, [questionId, getAllQuestions]);
 
-    setAnswers(mockAnswers);
-  }, []);
+  // Mock answers data - you'll want to replace this with actual API calls
+//   useEffect(() => {
+//     const mockAnswers = [
+//       {
+//         id: 1,
+//         content: `<p>Here's a comprehensive guide to implementing WebSocket in Spring Boot:</p>
+
+// <h3>1. Add Dependencies</h3>
+// <p>First, add the WebSocket dependency to your <code>pom.xml</code>:</p>
+// <pre><code>&lt;dependency&gt;
+//     &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+//     &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
+// &lt;/dependency&gt;</code></pre>
+
+// <h3>2. WebSocket Configuration</h3>
+// <pre><code>@Configuration
+// @EnableWebSocket
+// public class WebSocketConfig implements WebSocketConfigurer {
+
+//     @Override
+//     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+//         registry.addHandler(new MyWebSocketHandler(), "/websocket")
+//                 .setAllowedOrigins("*");
+//     }
+// }</code></pre>
+
+// <h3>3. WebSocket Handler</h3>
+// <pre><code>@Component
+// public class MyWebSocketHandler extends TextWebSocketHandler {
+
+//     @Override
+//     public void afterConnectionEstablished(WebSocketSession session) {
+//         System.out.println("Connection established: " + session.getId());
+//     }
+
+//     @Override
+//     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+//         String payload = message.getPayload();
+//         session.sendMessage(new TextMessage("Echo: " + payload));
+//     }
+
+//     @Override
+//     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+//         System.out.println("Connection closed: " + session.getId());
+//     }
+// }</code></pre>
+
+// <p>This setup provides a basic WebSocket implementation that echoes messages back to the client.</p>`,
+//         author: {
+//           id: 2,
+//           name: "Spring Expert",
+//           username: "spring_expert",
+//           avatar:
+//             "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+//           reputation: 2340,
+//           title: "Spring Specialist",
+//           isOnline: false,
+//         },
+//         createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+//         editedAt: null,
+//         isEdited: false,
+//         votes: 23,
+//         userVote: null,
+//         isAccepted: false,
+//         commentCount: 2,
+//         comments: [
+//           {
+//             id: 1,
+//             content:
+//               "Great explanation! Could you also show how to handle STOMP protocol?",
+//             author: {
+//               id: 1,
+//               name: "John Doe",
+//               username: "john_doe",
+//               avatar:
+//                 "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+//               reputation: 100,
+//             },
+//             createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+//             likes: 3,
+//           },
+//         ],
+//       },
+//     ];
+
+//     setAnswers(mockAnswers);
+//   }, []);
 
   // Mock related questions
   useEffect(() => {
     const mockRelatedQuestions = [
       {
         id: 2,
-        title: 'React Context vs Redux: When to use which?',
-        answerCount: 7,
-        votes: 24,
-        views: 1890,
-        createdAt: '2025-01-08T10:00:00Z',
-        tags: ['react', 'redux', 'context']
+        title: "Spring Boot WebSocket with STOMP protocol",
+        answerCount: 5,
+        votes: 18,
+        views: 890,
+        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        tags: ["spring-boot", "websocket", "stomp"],
       },
       {
         id: 3,
-        title: 'Best practices for useEffect cleanup in React',
-        answerCount: 5,
-        votes: 18,
+        title: "Real-time chat application with Spring Boot",
+        answerCount: 7,
+        votes: 24,
         views: 1245,
-        createdAt: '2025-01-09T14:30:00Z',
-        tags: ['react', 'hooks', 'useeffect']
+        createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        tags: ["spring-boot", "websocket", "chat"],
       },
-      {
-        id: 4,
-        title: 'How to optimize React component re-renders?',
-        answerCount: 9,
-        votes: 31,
-        views: 2156,
-        createdAt: '2025-01-07T16:45:00Z',
-        tags: ['react', 'performance', 'optimization']
-      },
-      {
-        id: 5,
-        title: 'Testing React hooks with React Testing Library',
-        answerCount: 4,
-        votes: 15,
-        views: 987,
-        createdAt: '2025-01-06T11:20:00Z',
-        tags: ['react', 'testing', 'hooks']
-      }
     ];
 
     setRelatedQuestions(mockRelatedQuestions);
   }, []);
 
   // Sort answers based on selected criteria
-  const sortedAnswers = React.useMemo(() => {
+  const sortedAnswers = useMemo(() => {
     const sorted = [...answers];
-    
+
     switch (sortBy) {
-      case 'votes':
+      case "votes":
         return sorted.sort((a, b) => {
           // Accepted answer always first
           if (a.isAccepted && !b.isAccepted) return -1;
@@ -390,11 +226,15 @@ export function useWebSocket(url) {
           // Then by votes
           return b.votes - a.votes;
         });
-      case 'newest':
-        return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      case 'oldest':
-        return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      case 'activity':
+      case "newest":
+        return sorted.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+      case "oldest":
+        return sorted.sort(
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+        );
+      case "activity":
         return sorted.sort((a, b) => {
           const aActivity = new Date(a.editedAt || a.createdAt);
           const bActivity = new Date(b.editedAt || b.createdAt);
@@ -407,87 +247,92 @@ export function useWebSocket(url) {
 
   // Handle question voting
   const handleQuestionVote = (questionId, voteType) => {
-    setQuestion(prev => {
+    setQuestion((prev) => {
       if (!prev) return prev;
-      
+
       let newVotes = prev.votes;
       let newUserVote = voteType;
-      
+
       if (prev.userVote === voteType) {
         // Remove vote
         newUserVote = null;
-        newVotes += voteType === 'up' ? -1 : 1;
+        newVotes += voteType === "up" ? -1 : 1;
       } else if (prev.userVote) {
         // Change vote
-        newVotes += voteType === 'up' ? 2 : -2;
+        newVotes += voteType === "up" ? 2 : -2;
       } else {
         // New vote
-        newVotes += voteType === 'up' ? 1 : -1;
+        newVotes += voteType === "up" ? 1 : -1;
       }
-      
+
       return {
         ...prev,
         votes: newVotes,
-        userVote: newUserVote
+        userVote: newUserVote,
       };
     });
   };
 
   // Handle answer voting
   const handleAnswerVote = (answerId, voteType) => {
-    setAnswers(prev => prev.map(answer => {
-      if (answer.id !== answerId) return answer;
-      
-      let newVotes = answer.votes;
-      let newUserVote = voteType;
-      
-      if (answer.userVote === voteType) {
-        // Remove vote
-        newUserVote = null;
-        newVotes += voteType === 'up' ? -1 : 1;
-      } else if (answer.userVote) {
-        // Change vote
-        newVotes += voteType === 'up' ? 2 : -2;
-      } else {
-        // New vote
-        newVotes += voteType === 'up' ? 1 : -1;
-      }
-      
-      return {
-        ...answer,
-        votes: newVotes,
-        userVote: newUserVote
-      };
-    }));
+    setAnswers((prev) =>
+      prev.map((answer) => {
+        if (answer.id !== answerId) return answer;
+
+        let newVotes = answer.votes;
+        let newUserVote = voteType;
+
+        if (answer.userVote === voteType) {
+          // Remove vote
+          newUserVote = null;
+          newVotes += voteType === "up" ? -1 : 1;
+        } else if (answer.userVote) {
+          // Change vote
+          newVotes += voteType === "up" ? 2 : -2;
+        } else {
+          // New vote
+          newVotes += voteType === "up" ? 1 : -1;
+        }
+
+        return {
+          ...answer,
+          votes: newVotes,
+          userVote: newUserVote,
+        };
+      })
+    );
   };
 
   // Handle answer acceptance
   const handleAnswerAccept = (answerId) => {
-    setAnswers(prev => prev.map(answer => ({
-      ...answer,
-      isAccepted: answer.id === answerId
-    })));
-    
-    setQuestion(prev => ({
+    setAnswers((prev) =>
+      prev.map((answer) => ({
+        ...answer,
+        isAccepted: answer.id === answerId,
+      }))
+    );
+
+    setQuestion((prev) => ({
       ...prev,
-      acceptedAnswerAt: new Date().toISOString()
+      acceptedAnswerAt: new Date().toISOString(),
+      hasAcceptedAnswer: true,
     }));
   };
 
   // Handle bookmark
   const handleBookmark = (questionId, isBookmarked) => {
-    setQuestion(prev => ({
+    setQuestion((prev) => ({
       ...prev,
-      isBookmarked
+      isBookmarked,
     }));
   };
 
   // Handle follow
   const handleFollow = (questionId, isFollowing) => {
-    setQuestion(prev => ({
+    setQuestion((prev) => ({
       ...prev,
       isFollowing,
-      followers: prev.followers + (isFollowing ? 1 : -1)
+      followers: prev.followers + (isFollowing ? 1 : -1),
     }));
   };
 
@@ -496,7 +341,7 @@ export function useWebSocket(url) {
     if (navigator.share) {
       navigator.share({
         title: question.title,
-        url: window.location.href
+        url: window.location.href,
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
@@ -509,21 +354,29 @@ export function useWebSocket(url) {
     const newComment = {
       id: Date.now(),
       content,
-      author: currentUser,
+      author: {
+        id: currentUser.id,
+        name: currentUser.displayName,
+        username: currentUser.username,
+        avatar: currentUser.avatarUrl,
+        reputation: currentUser.reputationScore,
+      },
       createdAt: new Date().toISOString(),
-      likes: 0
+      likes: 0,
     };
 
-    setAnswers(prev => prev.map(answer => {
-      if (answer.id === answerId) {
-        return {
-          ...answer,
-          comments: [...(answer.comments || []), newComment],
-          commentCount: (answer.commentCount || 0) + 1
-        };
-      }
-      return answer;
-    }));
+    setAnswers((prev) =>
+      prev.map((answer) => {
+        if (answer.id === answerId) {
+          return {
+            ...answer,
+            comments: [...(answer.comments || []), newComment],
+            commentCount: (answer.commentCount || 0) + 1,
+          };
+        }
+        return answer;
+      })
+    );
   };
 
   // Handle answer submission
@@ -531,31 +384,39 @@ export function useWebSocket(url) {
     if (!currentUser) return;
 
     setIsSubmittingAnswer(true);
-    
+
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       const newAnswer = {
         id: Date.now(),
         content,
-        author: currentUser,
+        author: {
+          id: currentUser.id,
+          name: currentUser.displayName,
+          username: currentUser.username,
+          avatar: currentUser.avatarUrl,
+          reputation: currentUser.reputationScore,
+          title: currentUser.role,
+          isOnline: true,
+        },
         createdAt: new Date().toISOString(),
         votes: 0,
         userVote: null,
         isAccepted: false,
         commentCount: 0,
-        comments: []
+        comments: [],
       };
 
-      setAnswers(prev => [...prev, newAnswer]);
-      setQuestion(prev => ({
+      setAnswers((prev) => [...prev, newAnswer]);
+      setQuestion((prev) => ({
         ...prev,
-        answerCount: prev.answerCount + 1
+        answerCount: prev.answerCount + 1,
       }));
       setShowAnswerEditor(false);
     } catch (error) {
-      console.error('Failed to submit answer:', error);
+      console.error("Failed to submit answer:", error);
     } finally {
       setIsSubmittingAnswer(false);
     }
@@ -588,7 +449,7 @@ export function useWebSocket(url) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-6">
         {/* Back Navigation */}
         <div className="mb-6">
@@ -603,6 +464,25 @@ export function useWebSocket(url) {
             Back to Questions
           </Button>
         </div>
+
+        {/* Closed Question Banner */}
+        {question.isClosed && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Icon name="Lock" size={20} className="text-destructive" />
+              <div>
+                <p className="font-medium text-destructive">
+                  This question is closed
+                </p>
+                {question.closeReason && (
+                  <p className="text-sm text-destructive/80">
+                    {question.closeReason}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Content */}
@@ -643,10 +523,18 @@ export function useWebSocket(url) {
               {/* No Answers State */}
               {answers.length === 0 && (
                 <div className="text-center py-12 bg-card border rounded-lg">
-                  <Icon name="MessageSquare" size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-medium text-card-foreground mb-2">No answers yet</h3>
-                  <p className="text-muted-foreground mb-4">Be the first to answer this question!</p>
-                  {currentUser && (
+                  <Icon
+                    name="MessageSquare"
+                    size={48}
+                    className="mx-auto mb-4 text-muted-foreground opacity-50"
+                  />
+                  <h3 className="text-lg font-medium text-card-foreground mb-2">
+                    No answers yet
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Be the first to answer this question!
+                  </p>
+                  {currentUser && !question.isClosed && (
                     <Button
                       onClick={() => setShowAnswerEditor(true)}
                       iconName="Plus"
@@ -661,7 +549,7 @@ export function useWebSocket(url) {
             </div>
 
             {/* Answer Editor */}
-            {showAnswerEditor && currentUser && (
+            {showAnswerEditor && currentUser && !question.isClosed && (
               <AnswerEditor
                 onSubmit={handleAnswerSubmit}
                 onCancel={() => setShowAnswerEditor(false)}
@@ -671,28 +559,56 @@ export function useWebSocket(url) {
             )}
 
             {/* Add Answer Button */}
-            {!showAnswerEditor && currentUser && answers.length > 0 && (
-              <div className="text-center">
-                <Button
-                  onClick={() => setShowAnswerEditor(true)}
-                  iconName="Plus"
-                  iconPosition="left"
-                  iconSize={16}
-                  size="lg"
-                >
-                  Write Your Answer
-                </Button>
+            {!showAnswerEditor &&
+              currentUser &&
+              answers.length > 0 &&
+              !question.isClosed && (
+                <div className="text-center">
+                  <Button
+                    onClick={() => setShowAnswerEditor(true)}
+                    iconName="Plus"
+                    iconPosition="left"
+                    iconSize={16}
+                    size="lg"
+                  >
+                    Write Your Answer
+                  </Button>
+                </div>
+              )}
+
+            {/* Closed Question Notice */}
+            {question.isClosed && currentUser && (
+              <div className="text-center py-8 bg-card border rounded-lg">
+                <Icon
+                  name="Lock"
+                  size={48}
+                  className="mx-auto mb-4 text-muted-foreground opacity-50"
+                />
+                <h3 className="text-lg font-medium text-card-foreground mb-2">
+                  Question is closed
+                </h3>
+                <p className="text-muted-foreground">
+                  This question is not accepting new answers.
+                </p>
               </div>
             )}
 
             {/* Login Prompt for Guests */}
             {!currentUser && (
               <div className="text-center py-8 bg-card border rounded-lg">
-                <Icon name="User" size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium text-card-foreground mb-2">Want to answer?</h3>
-                <p className="text-muted-foreground mb-4">Sign in to share your knowledge and help the community.</p>
+                <Icon
+                  name="User"
+                  size={48}
+                  className="mx-auto mb-4 text-muted-foreground opacity-50"
+                />
+                <h3 className="text-lg font-medium text-card-foreground mb-2">
+                  Want to answer?
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Sign in to share your knowledge and help the community.
+                </p>
                 <Button
-                  onClick={() => window.location.href = '/user-registration'}
+                  onClick={() => (window.location.href = "/user-registration")}
                   iconName="LogIn"
                   iconPosition="left"
                   iconSize={16}
@@ -718,7 +634,7 @@ export function useWebSocket(url) {
       </div>
 
       {/* Floating Action Button for Mobile */}
-      {currentUser && !showAnswerEditor && (
+      {currentUser && !showAnswerEditor && !question.isClosed && (
         <div className="lg:hidden fixed bottom-6 right-6 z-40">
           <Button
             onClick={() => setShowAnswerEditor(true)}

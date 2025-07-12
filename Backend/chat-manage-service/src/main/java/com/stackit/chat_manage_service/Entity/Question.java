@@ -2,10 +2,7 @@ package com.stackit.chat_manage_service.Entity;
 
 import com.stackit.chat_manage_service.Auth.Entities.User;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -67,12 +64,14 @@ public class Question {
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Answer> answers;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY) // Change back to LAZY for question creation
     @JoinTable(
             name = "question_tags",
             joinColumns = @JoinColumn(name = "question_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
+    @ToString.Exclude // Prevent infinite recursion
+    @EqualsAndHashCode.Exclude // Exclude from equals/hashCode to prevent lazy loading
     private Set<Tag> tags;
 
     // Derived fields
