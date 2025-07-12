@@ -1,12 +1,15 @@
 import React from "react";
 import Routes from "./Routes";
 import { AuthProvider } from "./contexts/AuthContext";
+import { AppProvider } from "contexts/AppProvider";
 
 function App() {
   return (
-    <AuthProvider>
-      <Routes />
-    </AuthProvider>
+    <AppProvider>
+      <AuthProvider>
+        <Routes />
+      </AuthProvider>
+    </AppProvider>
   );
 }
 
