@@ -11,6 +11,7 @@ import ProfileSidebar from "./components/ProfileSidebar";
 import Icon from "../../components/AppIcon";
 import Button from "../../components/ui/Button";
 import { useAuth } from "contexts/AuthContext";
+import axios from "axios";
 
 const UserProfile = () => {
   const [activeTab, setActiveTab] = useState("questions");
@@ -27,8 +28,18 @@ const UserProfile = () => {
 
   useEffect(async () => {
     const newUser = await getCurrentUser(token);
-    setUser(newUser);
+
+    const response = await axios.get(
+      `http://localhost:7000/api/auth/getuser/${newUser.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     console.log(newUser);
+    setUser(response.data)
+    console.log(response.data);
   }, []);
 
   // Mock user data
