@@ -1,7 +1,7 @@
 package com.stackit.chat_manage_service.Repository;
 
+import com.stackit.chat_manage_service.Auth.Entities.User;
 import com.stackit.chat_manage_service.Entity.Notification;
-import com.stackit.chat_manage_service.Entity.User;
 import com.stackit.chat_manage_service.Entity.enums.NotificationType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

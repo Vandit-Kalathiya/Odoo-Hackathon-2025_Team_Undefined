@@ -1,16 +1,17 @@
 package com.stackit.chat_manage_service.Service;
 
+import com.stackit.chat_manage_service.Auth.Entities.User;
 import com.stackit.chat_manage_service.Entity.Answer;
 import com.stackit.chat_manage_service.Entity.Notification;
 import com.stackit.chat_manage_service.Entity.Question;
-import com.stackit.chat_manage_service.Entity.User;
+
 import com.stackit.chat_manage_service.Entity.enums.NotificationType;
 import com.stackit.chat_manage_service.Payload.Response.NotificationResponse;
 import com.stackit.chat_manage_service.Payload.Response.UserSummaryResponse;
 import com.stackit.chat_manage_service.Repository.AnswerRepository;
 import com.stackit.chat_manage_service.Repository.NotificationRepository;
 import com.stackit.chat_manage_service.Repository.QuestionRepository;
-import com.stackit.chat_manage_service.Repository.UserRepository;
+import com.stackit.chat_manage_service.Auth.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
