@@ -81,7 +81,7 @@ public class QuestionService {
                 .orElseThrow(() -> new RuntimeException("Question not found"));
 
         // Increment view count if not the question owner
-        if (currentUserId == null || !question.getUser().getId().equals(currentUserId)) {
+        if (!question.getUser().getId().equals(currentUserId)) {
             questionRepository.incrementViewCount(id);
         }
 
