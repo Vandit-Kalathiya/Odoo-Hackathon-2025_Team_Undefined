@@ -1,45 +1,112 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from "react";
+import Button from "../../../components/ui/Button";
 
-import Button from '../../../components/ui/Button';
-
-const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your question in detail..." }) => {
+const RichTextEditor = ({
+  content,
+  onChange,
+  error,
+  placeholder = "Describe your question in detail...",
+}) => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkText, setLinkText] = useState('');
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const emojis = ['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💡', '✅', '❌', '⚠️', '📝', '💻', '🚀', '🎉'];
+  const emojis = ["😀", "😂", "😍", "🤔", "👍", "👎", "❤️", "🔥", "💡", "✅", "❌", "⚠️", "📝", "💻", "🚀", "🎉"];
+
+  useEffect(() => {
+    if (editorRef.current && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = content || "";
+    }
+  }, [content]);
 
   const formatText = (command, value = null) => {
-    document.execCommand(command, false, value);
     editorRef.current?.focus();
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+
+    if (command === "insertUnorderedList" || command === "insertOrderedList") {
+      const success = document.execCommand(command, false, null);
+
+      if (!success) {
+        const tag = command === "insertUnorderedList" ? "ul" : "ol";
+        const wrapper = document.createElement(tag);
+        const li = document.createElement("li");
+        li.textContent = "List item";
+        wrapper.appendChild(li);
+
+        range.deleteContents();
+        range.insertNode(wrapper);
+
+        const newRange = document.createRange();
+        newRange.setStart(li.firstChild, li.firstChild.length);
+        newRange.collapse(true);
+
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+    } else {
+      document.execCommand(command, false, value);
+    }
+
+    onChange(editorRef.current.innerHTML);
+  };
+
+  const insertHTMLAtCursor = (html) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+
+    const fragment = range.createContextualFragment(html);
+    range.insertNode(fragment);
+
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    editorRef.current?.focus();
+    onChange(editorRef.current.innerHTML);
   };
 
   const insertEmoji = (emoji) => {
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(document.createTextNode(emoji));
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
+    insertHTMLAtCursor(emoji);
     setShowEmojiPicker(false);
-    editorRef.current?.focus();
   };
 
   const insertLink = () => {
-    if (linkUrl && linkText) {
-      const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-      formatText('insertHTML', linkHtml);
-      setShowLinkDialog(false);
-      setLinkUrl('');
-      setLinkText('');
-    }
+    if (!linkUrl || !linkText) return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+
+    const anchor = document.createElement("a");
+    anchor.href = linkUrl;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.textContent = linkText;
+
+    range.insertNode(anchor);
+    range.collapse(false);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    editorRef.current?.focus();
+    onChange(editorRef.current.innerHTML);
+
+    setShowLinkDialog(false);
+    setLinkUrl("");
+    setLinkText("");
   };
 
   const handleImageUpload = (event) => {
@@ -48,25 +115,25 @@ const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your
       const reader = new FileReader();
       reader.onload = (e) => {
         const imgHtml = `<img src="${e.target.result}" alt="Uploaded image" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
-        formatText('insertHTML', imgHtml);
+        insertHTMLAtCursor(imgHtml);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const getPreviewContent = () => {
-    return { __html: content || '<p class="text-muted-foreground">Nothing to preview yet...</p>' };
-  };
+  const getPreviewContent = () => ({
+    __html: content || '<p class="text-muted-foreground">Nothing to preview yet...</p>',
+  });
 
   const toolbarButtons = [
-    { icon: 'Bold', command: 'bold', tooltip: 'Bold (Ctrl+B)' },
-    { icon: 'Italic', command: 'italic', tooltip: 'Italic (Ctrl+I)' },
-    { icon: 'Strikethrough', command: 'strikethrough', tooltip: 'Strikethrough' },
-    { icon: 'List', command: 'insertUnorderedList', tooltip: 'Bullet List' },
-    { icon: 'ListOrdered', command: 'insertOrderedList', tooltip: 'Numbered List' },
-    { icon: 'AlignLeft', command: 'justifyLeft', tooltip: 'Align Left' },
-    { icon: 'AlignCenter', command: 'justifyCenter', tooltip: 'Align Center' },
-    { icon: 'AlignRight', command: 'justifyRight', tooltip: 'Align Right' }
+    { icon: "Bold", command: "bold", tooltip: "Bold (Ctrl+B)" },
+    { icon: "Italic", command: "italic", tooltip: "Italic (Ctrl+I)" },
+    { icon: "Strikethrough", command: "strikethrough", tooltip: "Strikethrough" },
+    { icon: "List", command: "insertUnorderedList", tooltip: "Bullet List" },
+    { icon: "ListOrdered", command: "insertOrderedList", tooltip: "Numbered List" },
+    { icon: "AlignLeft", command: "justifyLeft", tooltip: "Align Left" },
+    { icon: "AlignCenter", command: "justifyCenter", tooltip: "Align Center" },
+    { icon: "AlignRight", command: "justifyRight", tooltip: "Align Right" },
   ];
 
   return (
@@ -99,7 +166,6 @@ const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your
 
       {!isPreviewMode && (
         <div className="border rounded-lg overflow-hidden bg-background">
-          {/* Toolbar */}
           <div className="border-b bg-muted/30 p-2">
             <div className="flex flex-wrap items-center gap-1">
               {toolbarButtons.map((button) => (
@@ -114,9 +180,9 @@ const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your
                   title={button.tooltip}
                 />
               ))}
-              
+
               <div className="w-px h-6 bg-border mx-1" />
-              
+
               <div className="relative">
                 <Button
                   variant="ghost"
@@ -163,7 +229,7 @@ const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your
                 className="h-8 w-8 p-0"
                 title="Upload Image"
               />
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -174,14 +240,12 @@ const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your
             </div>
           </div>
 
-          {/* Editor */}
           <div
             ref={editorRef}
             contentEditable
             className="min-h-[300px] p-4 focus:outline-none"
-            style={{ minHeight: '300px' }}
-            onInput={(e) => onChange(e.target.innerHTML)}
-            dangerouslySetInnerHTML={{ __html: content }}
+            style={{ minHeight: "300px" }}
+            onInput={() => onChange(editorRef.current?.innerHTML || "")}
             data-placeholder={placeholder}
           />
         </div>
@@ -189,22 +253,17 @@ const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your
 
       {isPreviewMode && (
         <div className="border rounded-lg p-4 min-h-[300px] bg-background">
-          <div 
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={getPreviewContent()}
-          />
+          <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={getPreviewContent()} />
         </div>
       )}
 
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <p className="text-sm text-muted-foreground">
-        Include all the information someone would need to answer your question. Use formatting to make your question easier to read.
+        Include all the information someone would need to answer your question.
+        Use formatting to make your question easier to read.
       </p>
 
-      {/* Link Dialog */}
       {showLinkDialog && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-popover border rounded-lg shadow-lg p-6 w-full max-w-md">
@@ -235,16 +294,13 @@ const RichTextEditor = ({ content, onChange, error, placeholder = "Describe your
                   variant="ghost"
                   onClick={() => {
                     setShowLinkDialog(false);
-                    setLinkUrl('');
-                    setLinkText('');
+                    setLinkUrl("");
+                    setLinkText("");
                   }}
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={insertLink}
-                  disabled={!linkUrl || !linkText}
-                >
+                <Button onClick={insertLink} disabled={!linkUrl || !linkText}>
                   Insert Link
                 </Button>
               </div>
