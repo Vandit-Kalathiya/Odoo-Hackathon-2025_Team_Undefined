@@ -26,24 +26,16 @@ const AskQuestion = () => {
   const { createQuestion } = useQuestions();
 
   const navigate = useNavigate();
-  // const [user, setUser] = useState('');
-  console.log(userProfile)
-  const token = localStorage.getItem('token')
-  
-  // Check if user is authenticated
-  useEffect( async () => {
-    const newUser = await getCurrentUser(token);
-    // setUser(newUser)
-    console.log(newUser)
-  }, []);
+  const token = localStorage.getItem("token");
 
+  // Fixed: Check if user is authenticated - No longer async useEffect
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
         if (token && !currentUser) {
           const newUser = await getCurrentUser(token);
           setCurrentUser(newUser);
-          console.log(newUser);
+          console.log("Fetched user:", newUser);
         } else if (userProfile || user) {
           setCurrentUser(userProfile || user);
         }
@@ -53,7 +45,14 @@ const AskQuestion = () => {
     };
 
     fetchCurrentUser();
-  }, [location, token, userProfile, user, getCurrentUser, currentUser]);
+  }, [token, userProfile, user, getCurrentUser, currentUser]);
+
+  // Simplified user update effect
+  useEffect(() => {
+    if (userProfile || user) {
+      setCurrentUser(userProfile || user);
+    }
+  }, [userProfile, user]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -110,6 +109,7 @@ const AskQuestion = () => {
         tags: selectedTags,
       };
 
+      console.log("Submitting question:", questionData);
       const result = await createQuestion(questionData);
       console.log("Question created:", result);
 
@@ -125,8 +125,13 @@ const AskQuestion = () => {
         });
       }
     } catch (error) {
-      console.log("Error posting question:", error);
-      setErrors({ submit: "Failed to post question. Please try again." });
+      console.error("Error posting question:", error);
+      setErrors({
+        submit:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to post question. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -178,7 +183,6 @@ const AskQuestion = () => {
   }
 
   // Redirect message for unauthenticated users
-  console.log(currentUser);
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-background">
@@ -270,7 +274,7 @@ const AskQuestion = () => {
                       <Button
                         type="submit"
                         loading={isSubmitting}
-                        disabled={!hasContent}
+                        disabled={!hasContent || isSubmitting}
                         iconName="Send"
                         iconPosition="left"
                         iconSize={16}
@@ -285,6 +289,7 @@ const AskQuestion = () => {
                         iconName="X"
                         iconPosition="left"
                         iconSize={16}
+                        disabled={isSubmitting}
                       >
                         Cancel
                       </Button>
