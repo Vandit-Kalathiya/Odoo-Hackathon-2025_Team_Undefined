@@ -37,7 +37,7 @@ const QuestionCard = ({
     return tmp.textContent || tmp.innerText || "";
   };
 
-  console.log("QuestionCard rendered:", question);
+  // console.log("QuestionCard rendered:", question);
 
   return (
     <div className="bg-card border rounded-lg p-4 hover:shadow-md transition-all duration-200 cursor-pointer group">

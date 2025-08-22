@@ -17,9 +17,9 @@ const ProfileTabs = ({ activeTab, onTabChange, questionCount, answerCount, activ
       count: answerCount
     },
     {
-      id: 'activity',
-      label: 'Activity',
-      icon: 'Activity',
+      id: 'notifications',
+      label: 'Notifications',
+      icon: 'Notification',
       count: activityCount
     },
     {

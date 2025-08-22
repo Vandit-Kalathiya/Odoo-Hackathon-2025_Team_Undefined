@@ -6,6 +6,7 @@ import com.stackit.chat_manage_service.Auth.Repository.UserRepository;
 import com.stackit.chat_manage_service.Auth.Services.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -53,7 +54,7 @@ public class AuthController {
         if (bindingResult.hasErrors()) {
             List<String> errors = bindingResult.getFieldErrors()
                     .stream()
-                    .map(error -> error.getDefaultMessage())
+                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
                     .collect(Collectors.toList());
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "Validation failed", errors));

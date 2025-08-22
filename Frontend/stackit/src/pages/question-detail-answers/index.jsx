@@ -34,13 +34,14 @@ const QuestionDetailAnswers = () => {
 
   // Transform backend answer data to component format
   const transformAnswer = (answerData) => {
+    console.log(answerData);
     return {
       id: answerData.id,
       content: answerData.content,
       author: {
         id: answerData.user?.id,
-        name: answerData.user?.displayName || answerData.user?.username,
-        username: answerData.user?.username,
+        name: answerData.user?.name || answerData.user?.username,
+        username: answerData.user?.email,
         avatar:
           answerData.user?.avatarUrl ||
           `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -63,6 +64,7 @@ const QuestionDetailAnswers = () => {
       questionId: answerData.question?.id,
     };
   };
+
 
   // Transform backend question data to component format
   const transformQuestion = (questionData) => {

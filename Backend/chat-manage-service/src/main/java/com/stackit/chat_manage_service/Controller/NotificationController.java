@@ -23,6 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Notifications", description = "Notification management operations")
+@CrossOrigin(origins = "http://localhost:5173")
 public class NotificationController {
 
     private final NotificationService notificationService;
