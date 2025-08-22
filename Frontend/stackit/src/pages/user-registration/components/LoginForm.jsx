@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
-import Icon from '../../../components/AppIcon';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import Icon from "../../../components/AppIcon";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
   const { signIn, loading: authLoading, authError } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -18,13 +19,13 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
     const newErrors = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
@@ -32,32 +33,39 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       const result = await signIn(formData.email, formData.password);
-      
-      if (result) {
+
+      if (result.success) {
         // Redirect to dashboard on successful login
-        navigate('/');
-        setIsLoading(false);
+        if (result.data.role === "ADMIN" || result.data.role === "Admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/questions-dashboard");
+        }
+        toast.success("Welcome back! Login Successful");
+      } else {
+        throw new Error(result.error || "Login failed");
       }
-      console.log(result)
+      console.log(result);
     } catch (error) {
-      console.log('Login error:', error);
+      toast.error(`Login Failed. ${error.message}`);
+      // console.log('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -66,13 +74,16 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
   const navigate = useNavigate();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-gray-200 rounded-2xl shadow-xl w-full max-w-md p-8">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 bg-white border border-gray-200 rounded-2xl shadow-xl w-full max-w-md p-8"
+    >
       <div className="space-y-4">
         <Input
           type="email"
           placeholder="Enter your email"
           value={formData.email}
-          onChange={(e) => handleInputChange('email', e.target.value)}
+          onChange={(e) => handleInputChange("email", e.target.value)}
           error={errors.email}
           disabled={isLoading || authLoading}
           icon="Mail"
@@ -82,7 +93,7 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
           type="password"
           placeholder="Enter your password"
           value={formData.password}
-          onChange={(e) => handleInputChange('password', e.target.value)}
+          onChange={(e) => handleInputChange("password", e.target.value)}
           error={errors.password}
           disabled={isLoading || authLoading}
           icon="Lock"
@@ -92,7 +103,11 @@ const LoginForm = ({ onSwitchToSignup, onForgotPassword }) => {
       {(authError || errors.submit) && (
         <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
           <div className="flex items-center space-x-2">
-            <Icon name="AlertCircle" size={16} className="text-destructive flex-shrink-0" />
+            <Icon
+              name="AlertCircle"
+              size={16}
+              className="text-destructive flex-shrink-0"
+            />
             <p className="text-sm text-destructive">
               {authError || errors.submit}
             </p>

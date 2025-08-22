@@ -1,8 +1,11 @@
 package com.stackit.chat_manage_service.Service;
 
+import com.stackit.chat_manage_service.Entity.Answer;
+import com.stackit.chat_manage_service.Entity.Question;
 import com.stackit.chat_manage_service.Payload.Response.AnswerResponse;
 import com.stackit.chat_manage_service.Payload.Response.NotificationResponse;
 import com.stackit.chat_manage_service.Payload.Response.QuestionResponse;
+import com.stackit.chat_manage_service.Repository.AnswerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -17,6 +20,7 @@ import java.util.Map;
 public class WebSocketService {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final AnswerRepository answerRepository;
 
     /**
      * Broadcast a new question to all connected clients
@@ -26,9 +30,10 @@ public class WebSocketService {
 
         Map<String, Object> message = new HashMap<>();
         message.put("type", "QUESTION_CREATED");
+        message.put("message", "A new question has been created with ID: " + question.getId());
         message.put("data", question);
 
-        messagingTemplate.convertAndSend("/topic/questions", message);
+        messagingTemplate.convertAndSend("/topic/" + question.getUser().getId(), message);
     }
 
     /**
@@ -41,21 +46,22 @@ public class WebSocketService {
         message.put("type", "QUESTION_UPDATED");
         message.put("data", question);
 
-        messagingTemplate.convertAndSend("/topic/questions/" + question.getId(), message);
-        messagingTemplate.convertAndSend("/topic/questions", message);
+        messagingTemplate.convertAndSend("/topic/" + question.getUser().getId(), message);
+//        messagingTemplate.convertAndSend("/topic/questions", message);
     }
 
     /**
      * Broadcast new answer to question subscribers
      */
-    public void broadcastNewAnswer(AnswerResponse answer) {
+    public void broadcastNewAnswer(AnswerResponse answer, Question question) {
         log.info("Broadcasting new answer: {} for question: {}", answer.getId(), answer.getQuestionId());
 
         Map<String, Object> message = new HashMap<>();
         message.put("type", "NEW_ANSWER");
+        message.put("message", "A new answer has been posted for your question: " + question.getId());
         message.put("data", answer);
 
-        messagingTemplate.convertAndSend("/topic/questions/" + answer.getQuestionId(), message);
+        messagingTemplate.convertAndSend("/topic/" + question.getUser().getId(), message);
     }
 
     /**
@@ -68,7 +74,7 @@ public class WebSocketService {
         message.put("type", "ANSWER_UPDATED");
         message.put("data", answer);
 
-        messagingTemplate.convertAndSend("/topic/questions/" + answer.getQuestionId(), message);
+        messagingTemplate.convertAndSend("/topic/" + answer.getUser().getId(), message);
     }
 
     /**
@@ -76,13 +82,15 @@ public class WebSocketService {
      */
     public void broadcastAnswerAccepted(Long questionId, Long answerId) {
         log.info("Broadcasting answer acceptance: {} for question: {}", answerId, questionId);
+        Answer answer = answerRepository.findById(answerId).orElseThrow(() -> new RuntimeException("Answer not found"));
 
         Map<String, Object> message = new HashMap<>();
         message.put("type", "ANSWER_ACCEPTED");
+        message.put("message", "Your answer has been accepted for question: " + questionId);
         message.put("questionId", questionId);
         message.put("answerId", answerId);
 
-        messagingTemplate.convertAndSend("/topic/questions/" + questionId, message);
+        messagingTemplate.convertAndSend("/topic/" + answer.getUser().getId(), message);
     }
 
     /**
@@ -106,10 +114,13 @@ public class WebSocketService {
         log.info("Sending notification to user: {}", userId);
 
         Map<String, Object> message = new HashMap<>();
-        message.put("type", "NEW_NOTIFICATION");
+        message.put("type", notification.getType());
+        message.put("createdAt", notification.getCreatedAt());
+        message.put("userId", userId);
+        message.put("message", notification.getMessage());
         message.put("data", notification);
 
-        messagingTemplate.convertAndSendToUser(userId.toString(), "/queue/notifications", message);
+        messagingTemplate.convertAndSend("/topic/" + userId, message);
     }
 
     /**

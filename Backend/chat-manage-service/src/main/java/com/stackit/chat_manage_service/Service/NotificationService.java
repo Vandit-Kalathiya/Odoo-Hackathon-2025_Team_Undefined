@@ -49,15 +49,15 @@ public class NotificationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Don't create notification if user is answering their own question
-        if (question.getUser().getId().equals(triggeredByUserId)) {
-            return;
-        }
+//        if (question.getUser().getId().equals(triggeredByUserId)) {
+//            return;
+//        }
 
         // Check if notification already exists to avoid duplicates
-        if (notificationRepository.existsByUserAndReferenceIdAndType(
-                question.getUser(), questionId, NotificationType.QUESTION_ANSWERED)) {
-            return;
-        }
+//        if (notificationRepository.existsByUserAndReferenceIdAndType(
+//                question.getUser(), questionId, NotificationType.QUESTION_ANSWERED)) {
+//            return;
+//        }
 
         String message = String.format("%s answered your question: \"%s\"",
                 triggeredByUser.getDisplayName() != null ? triggeredByUser.getDisplayName() : triggeredByUser.getUsername(),

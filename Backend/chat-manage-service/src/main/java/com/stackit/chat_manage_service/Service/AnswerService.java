@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -66,10 +67,13 @@ public class AnswerService {
         AnswerResponse response = mapToAnswerResponse(savedAnswer, null);
 
         // Send WebSocket notification
-        webSocketService.broadcastNewAnswer(response);
+//        webSocketService.broadcastNewAnswer(response, question);
+
+        System.out.println(question.getUser().getId() + " " + user.getId());
 
         // Create notification for question owner (if not answering own question)
-        if (!question.getUser().getId().equals(user.getId())) {
+        if (question.getUser().getId()!= user.getId()) {
+            log.info("Creating notification for question owner: {}", question.getUser().getId());
             notificationService.createQuestionAnsweredNotification(question.getId(), user.getId());
         }
 

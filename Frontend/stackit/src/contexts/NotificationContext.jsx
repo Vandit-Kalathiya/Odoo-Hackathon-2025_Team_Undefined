@@ -7,11 +7,18 @@ import React, {
   useEffect,
 } from "react";
 import { useApiConfig } from "./ApiConfig";
+import "../utils/init"
+import SockJS from "sockjs-client";
+import { Stomp } from "@stomp/stompjs";
+import toast from "react-hot-toast";
+import { useAuth } from "./AuthContext";
 
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
+  const { userProfile } = useAuth();
   const { apiClient, handleApiError } = useApiConfig();
+
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState([]);
@@ -24,8 +31,27 @@ export const NotificationProvider = ({ children }) => {
     hasNext: false,
     hasPrevious: false,
   });
+  const [stompClient, setStompClient] = useState(null);
 
-  // Get user notifications
+  // Add or merge incoming notification with deduplication
+  const addNotificationFromWebSocket = useCallback((notification) => {
+    setNotifications((prev) => {
+      if (prev.some((n) => n.id === notification.id)) {
+        return prev; // skip duplicate
+      }
+      return [notification, ...prev];
+    });
+
+    if (!notification.isRead) {
+      setUnreadNotifications((prev) => {
+        if (prev.some((n) => n.id === notification.id)) return prev;
+        return [notification, ...prev];
+      });
+      setUnreadCount((count) => count + 1);
+    }
+  }, []);
+
+  // Fetch notifications from API with pagination & merging
   const getUserNotifications = useCallback(
     async (userId, page = 0, size = 20, reset = false) => {
       try {
@@ -34,13 +60,7 @@ export const NotificationProvider = ({ children }) => {
           params: { page, size },
         });
 
-        const newNotifications = response.data.content;
-
-        if (reset || page === 0) {
-          setNotifications(newNotifications);
-        } else {
-          setNotifications((prev) => [...prev, ...newNotifications]);
-        }
+        const fetchedNotifications = response.data.content || [];
 
         setPagination({
           page: response.data.number,
@@ -50,6 +70,27 @@ export const NotificationProvider = ({ children }) => {
           hasNext: !response.data.last,
           hasPrevious: !response.data.first,
         });
+
+        setNotifications((prev) => {
+          if (reset || page === 0) {
+            return fetchedNotifications;
+          }
+          const merged = [...prev];
+          fetchedNotifications.forEach((n) => {
+            if (!merged.some((existing) => existing.id === n.id)) {
+              merged.push(n);
+            }
+          });
+          return merged;
+        });
+
+        // Update unread count accordingly
+        const unreadFromFetched = fetchedNotifications.filter(
+          (n) => !n.isRead
+        ).length;
+        setUnreadCount((count) =>
+          reset || page === 0 ? unreadFromFetched : count + unreadFromFetched
+        );
 
         return response.data;
       } catch (error) {
@@ -61,7 +102,7 @@ export const NotificationProvider = ({ children }) => {
     [apiClient, handleApiError]
   );
 
-  // Get unread notifications
+  // Fetch unread notifications (if needed elsewhere)
   const getUnreadNotifications = useCallback(
     async (userId) => {
       try {
@@ -70,6 +111,7 @@ export const NotificationProvider = ({ children }) => {
           `/notifications/user/${userId}/unread`
         );
         setUnreadNotifications(response.data);
+        setUnreadCount(response.data.length);
         return response.data;
       } catch (error) {
         throw new Error(
@@ -82,36 +124,16 @@ export const NotificationProvider = ({ children }) => {
     [apiClient, handleApiError]
   );
 
-  // Get unread count
-  const getUnreadCount = useCallback(
-    async (userId) => {
-      try {
-        const response = await apiClient.get(
-          `/notifications/user/${userId}/count`
-        );
-        setUnreadCount(response.data.unreadCount);
-        return response.data;
-      } catch (error) {
-        throw new Error(handleApiError(error, "Failed to fetch unread count"));
-      }
-    },
-    [apiClient, handleApiError]
-  );
-
-  // Mark notification as read
+  // Mark single notification as read
   const markAsRead = useCallback(
     async (notificationId, userId) => {
       try {
         setLoading(true);
-        const response = await apiClient.put(
+        await apiClient.put(
           `/notifications/${notificationId}/read`,
           {},
-          {
-            params: { userId },
-          }
+          { params: { userId } }
         );
-
-        // Update notifications list
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notificationId
@@ -119,16 +141,10 @@ export const NotificationProvider = ({ children }) => {
               : n
           )
         );
-
-        // Update unread notifications
         setUnreadNotifications((prev) =>
           prev.filter((n) => n.id !== notificationId)
         );
-
-        // Update unread count
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-
-        return response.data;
+        setUnreadCount((count) => Math.max(0, count - 1));
       } catch (error) {
         throw new Error(
           handleApiError(error, "Failed to mark notification as read")
@@ -145,21 +161,13 @@ export const NotificationProvider = ({ children }) => {
     async (userId) => {
       try {
         setLoading(true);
-        const response = await apiClient.put(
-          `/notifications/user/${userId}/read-all`
-        );
-
-        // Update all notifications to read
+        await apiClient.put(`/notifications/user/${userId}/read-all`);
         const now = new Date().toISOString();
         setNotifications((prev) =>
           prev.map((n) => ({ ...n, isRead: true, readAt: now }))
         );
-
-        // Clear unread notifications
         setUnreadNotifications([]);
         setUnreadCount(0);
-
-        return response.data;
       } catch (error) {
         throw new Error(
           handleApiError(error, "Failed to mark all notifications as read")
@@ -171,142 +179,76 @@ export const NotificationProvider = ({ children }) => {
     [apiClient, handleApiError]
   );
 
-  // Add new notification from WebSocket
-  const addNotificationFromWebSocket = useCallback(
-    (notificationData) => {
-      // Add to notifications list if it's the first page
-      if (pagination.page === 0) {
-        setNotifications((prev) => [notificationData, ...prev]);
-      }
+  // Connect WebSocket & subscribe to user topic for real-time notifications
+  const connectWebSocket = useCallback(
+    (userId) => {
+      if (!userId) return;
 
-      // Add to unread notifications
-      if (!notificationData.isRead) {
-        setUnreadNotifications((prev) => [notificationData, ...prev]);
-        setUnreadCount((prev) => prev + 1);
-      }
+      const sock = new SockJS("http://localhost:7000/api/chat");
+      const client = Stomp.over(sock);
+
+      client.connect(
+        {},
+        () => {
+          setStompClient(client);
+
+          client.subscribe(`/topic/${userId}`, (message) => {
+            try {
+              const notificationData = JSON.parse(message.body);
+              const notification = notificationData.data || notificationData;
+              addNotificationFromWebSocket(notification);
+            } catch (err) {
+              console.error("Failed to parse WebSocket notification:", err);
+            }
+          });
+        },
+        (error) => {
+          console.error("WebSocket connection error:", error);
+          toast.error("WebSocket connection failed: " + error);
+        }
+      );
     },
-    [pagination.page]
+    [addNotificationFromWebSocket]
   );
 
-  // Filter notifications by type
-  const filterNotificationsByType = useCallback(
-    (type) => {
-      return notifications.filter((n) => n.type === type);
-    },
-    [notifications]
-  );
+  // Automatically connect to WebSocket and fetch notifications on userProfile change
+  useEffect(() => {
+    if (!userProfile?.id) return;
 
-  // Filter notifications by read status
-  const filterNotificationsByReadStatus = useCallback(
-    (isRead) => {
-      return notifications.filter((n) => n.isRead === isRead);
-    },
-    [notifications]
-  );
+    // Load initial notifications
+    getUserNotifications(userProfile.id, 0, pagination.size, true).catch(
+      console.error
+    );
 
-  // Get notifications grouped by date
-  const getNotificationsGroupedByDate = useCallback(() => {
-    const grouped = {};
+    // Connect WebSocket for live notifications
+    connectWebSocket(userProfile.id);
 
-    notifications.forEach((notification) => {
-      const date = new Date(notification.createdAt).toDateString();
-      if (!grouped[date]) {
-        grouped[date] = [];
+    // Cleanup on unmount - disconnect websocket
+    return () => {
+      if (stompClient) {
+        stompClient.disconnect();
+        setStompClient(null);
       }
-      grouped[date].push(notification);
-    });
-
-    return grouped;
-  }, [notifications]);
-
-  // Get notification statistics
-  const getNotificationStats = useCallback(() => {
-    const total = notifications.length;
-    const unread = notifications.filter((n) => !n.isRead).length;
-    const byType = notifications.reduce((acc, n) => {
-      acc[n.type] = (acc[n.type] || 0) + 1;
-      return acc;
-    }, {});
-
-    return {
-      total,
-      unread,
-      read: total - unread,
-      byType,
     };
-  }, [notifications]);
-
-  // Clear notifications (useful for logout)
-  const clearNotifications = useCallback(() => {
-    setNotifications([]);
-    setUnreadNotifications([]);
-    setUnreadCount(0);
-    setPagination({
-      page: 0,
-      size: 20,
-      totalPages: 0,
-      totalElements: 0,
-      hasNext: false,
-      hasPrevious: false,
-    });
-  }, []);
-
-  // Auto-refresh unread count periodically
-  const startAutoRefresh = useCallback(
-    (userId, intervalMs = 30000) => {
-      const interval = setInterval(() => {
-        getUnreadCount(userId).catch(console.error);
-      }, intervalMs);
-
-      return () => clearInterval(interval);
-    },
-    [getUnreadCount]
-  );
-
-  // Get recent notifications (last 24 hours)
-  const getRecentNotifications = useCallback(() => {
-    const oneDayAgo = new Date();
-    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-    return notifications.filter((n) => new Date(n.createdAt) > oneDayAgo);
-  }, [notifications]);
-
-  // Check if notification is actionable (has action URL)
-  const isActionableNotification = useCallback((notification) => {
-    return Boolean(notification.actionUrl);
-  }, []);
+  }, [
+    userProfile?.id,
+    getUserNotifications,
+    connectWebSocket,
+  ]);
 
   const value = {
-    // State
     loading,
     notifications,
     unreadNotifications,
     unreadCount,
     pagination,
+    stompClient,
 
-    // Actions
     getUserNotifications,
     getUnreadNotifications,
-    getUnreadCount,
     markAsRead,
     markAllAsRead,
-
-    // WebSocket helpers
     addNotificationFromWebSocket,
-
-    // Utils
-    filterNotificationsByType,
-    filterNotificationsByReadStatus,
-    getNotificationsGroupedByDate,
-    getNotificationStats,
-    getRecentNotifications,
-    isActionableNotification,
-    clearNotifications,
-    startAutoRefresh,
-
-    // Setters
-    setNotifications,
-    setUnreadCount,
   };
 
   return (
@@ -316,12 +258,11 @@ export const NotificationProvider = ({ children }) => {
   );
 };
 
-// Custom hook
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error(
-      "useNotifications must be used within a NotificationProvider"
+      "useNotifications must be used within NotificationProvider"
     );
   }
   return context;
